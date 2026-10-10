@@ -64,35 +64,44 @@ function Get-VerifiedArchive([string] $Uri, [string] $Destination, [string] $Sha
     }
 }
 
-function Build-LegacyTls([string] $ToolsRoot, [string] $MingwBin, [string] $Python) {
+function Build-LegacyTls([string] $ToolsRoot, [string] $MingwBin, [string] $Python, [string] $Root) {
     # Qt 5.15.2 needs OpenSSL 1.1. Qt's current catalog only ships OpenSSL 3.
     # Build the last upstream 1.1.1 release rather than rename incompatible v3 DLLs.
     $work = Join-Path $ToolsRoot 'tls-source-build'
-    $perlRoot = Join-Path $ToolsRoot 'strawberry-perl54231'
+    $msysRoot = Join-Path $ToolsRoot 'msys2-tls'
     $prefix = Join-Path $ToolsRoot 'OpenSSL111w'
-    New-Item -ItemType Directory -Force $work, $perlRoot, $prefix | Out-Null
-    $perl = Join-Path $perlRoot 'perl/bin/perl.exe'
-    if (-not (Test-Path -LiteralPath $perl)) {
-        Write-SetupLog 'Pripravljam prenosni Perl za gradnjo TLS (uradna izdaja Strawberry Perl) ...'
-        $archive = Join-Path $work 'strawberry-perl.zip'
-        Get-VerifiedArchive 'https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54231_64bit/strawberry-perl-5.42.3.1-64bit-portable.zip' $archive '6a081a811781c30aca51dbc036afd93092af91e3297901f02c17043795a10690'
-        Expand-Archive -LiteralPath $archive -DestinationPath $perlRoot -Force
+    New-Item -ItemType Directory -Force $work, $msysRoot, $prefix | Out-Null
+    $bash = Join-Path $msysRoot 'msys64/usr/bin/bash.exe'
+    if (-not (Test-Path -LiteralPath $bash)) {
+        Write-SetupLog 'Pripravljam lokalni MSYS2 za gradnjo TLS (uradna preverjena izdaja) ...'
+        $archive = Join-Path $work 'msys2-base-20260927.sfx.exe'
+        Get-VerifiedArchive 'https://github.com/msys2/msys2-installer/releases/download/2026-09-27/msys2-base-x86_64-20260927.sfx.exe' $archive 'ad336cccfda47758b5e15cda993fbba421115cb0b126697daef1ee4dfe37209f'
+        Invoke-Checked $archive @('-y', "-o$msysRoot") 'Razsirjanje lokalnega MSYS2'
     }
     $archive = Join-Path $work 'openssl-1.1.1w.tar.gz'
     Get-VerifiedArchive 'https://github.com/openssl/openssl/releases/download/OpenSSL_1_1_1w/openssl-1.1.1w.tar.gz' $archive 'cf3098950cb4d853ad95c0841f1f9c6d3dc102dccfcacd521d93925208b76ac8'
     Invoke-Checked $Python @('-c', "import tarfile,sys; tarfile.open(sys.argv[1]).extractall(sys.argv[2],filter='data')", $archive, $work) 'Razsirjanje preverjenih TLS virov'
-    $source = Join-Path $work 'openssl-1.1.1w'
-    $previousPath = $env:PATH
+    $names = @('MSYSTEM', 'CHERE_INVOKING', 'SIMULIDE_MINGW_BIN', 'SIMULIDE_TLS_SOURCE', 'SIMULIDE_TLS_PREFIX')
+    $previous = @{}
+    foreach ($name in $names) { $previous[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
     try {
-        $env:PATH = "$MingwBin;$(Join-Path $perlRoot 'perl/bin');$(Join-Path $perlRoot 'c/bin');$env:PATH"
-        Push-Location -LiteralPath $source
+        $env:MSYSTEM = 'MSYS'
+        $env:CHERE_INVOKING = '1'
+        $env:SIMULIDE_MINGW_BIN = $MingwBin
+        $env:SIMULIDE_TLS_SOURCE = Join-Path $work 'openssl-1.1.1w'
+        $env:SIMULIDE_TLS_PREFIX = $prefix
+        Invoke-Checked $bash @('--login', '-c', 'true') 'Priprava lokalnega MSYS2'
+        # Use the official HTTPS repository and retain pacman's package signatures.
+        $mirror = Join-Path $msysRoot 'msys64/etc/pacman.d/mirrorlist.msys'
+        [IO.File]::WriteAllText($mirror, "Server = https://repo.msys2.org/msys/`$arch`n", (New-Object Text.UTF8Encoding $false))
+        Invoke-Checked $bash @('--login', '-c', 'pacman -Sy --needed --noconfirm perl make') 'Priprava podpisanih orodij MSYS2'
         Write-SetupLog 'Gradim OpenSSL 1.1.1w za Qt 5.15.2; ob naslednjem zagonu se knjiznice ponovno uporabijo.'
-        $forwardPrefix = $prefix.Replace('\', '/')
-        Invoke-Checked $perl @('Configure', 'mingw64', 'shared', 'no-asm', 'no-tests', "--prefix=$forwardPrefix", "--openssldir=$forwardPrefix/ssl") 'Priprava gradnje TLS'
-        Invoke-Checked (Join-Path $MingwBin 'mingw32-make.exe') @('-j4') 'Gradnja TLS'
-        Invoke-Checked (Join-Path $MingwBin 'mingw32-make.exe') @('install_sw') 'Namestitev lokalnih TLS knjiznic'
-        Copy-Item -LiteralPath (Join-Path $source 'LICENSE') -Destination (Join-Path $prefix 'LICENSE.txt') -Force
-    } finally { Pop-Location; $env:PATH = $previousPath }
+        $helper = (Join-Path $Root 'scripts/build-tls.sh').Replace('\', '/')
+        Invoke-Checked $bash @('--login', $helper) 'Gradnja in namestitev lokalnih TLS knjiznic'
+        Copy-Item -LiteralPath (Join-Path $env:SIMULIDE_TLS_SOURCE 'LICENSE') -Destination (Join-Path $prefix 'LICENSE.txt') -Force
+    } finally {
+        foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name, $previous[$name], 'Process') }
+    }
     return Join-Path $prefix 'bin'
 }
 
@@ -141,7 +150,7 @@ function Get-WindowsTools([string] $Root) {
             }
             if (-not $tls) {
                 if (-not $qt -or -not $mingw) { throw 'Qt ali MinGW ni pripravljen za gradnjo TLS. Preveri prenose v setup.log.' }
-                $null = Build-LegacyTls $toolsRoot $mingw $python
+                $null = Build-LegacyTls $toolsRoot $mingw $python $Root
                 $tls = Find-TlsBin $toolsRoot
             }
         }

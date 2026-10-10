@@ -17,11 +17,13 @@ Source: https://github.com/openssl/openssl/tree/OpenSSL_1_1_1w
 OpenSSL's dual OpenSSL/SSLeay license text is included here; notices from the
 actual installed archive are also copied when available.
 
-Bootstrap Python, aqtinstall and Strawberry Perl are development tools only and are not included
+Bootstrap Python, aqtinstall and MSYS2 are development tools only and are not included
 in the compiled student ZIP. Python is downloaded from python.org and verified
 against its pinned SHA256; aqtinstall is installed from PyPI over verified TLS.
 Qt/tool archives are checked against SHA256 served by the official Qt repository.
-OpenSSL and Strawberry Perl archives use pinned SHA256 from their official releases.
+OpenSSL and MSYS2 archives use pinned SHA256 from their official releases.
+MSYS2 installs Perl and make from https://repo.msys2.org with package signature
+verification enabled. Its tools are only used to build TLS with the cached Qt MinGW.
 
 The x64 Visual C++ runtime DLLs are reused from the tool cache or supplied by the
 official Python 3.12.10 embedded x64 archive. They are deployed alongside OpenSSL,

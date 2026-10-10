@@ -2,11 +2,13 @@
 
 ## Windows zaganjalniki in posodobitev izvorne kode
 
-- V Linux okolju je bilo s PowerShell 7.5.4 izvedenih **33 kontrolnih preverjanj**:
+- V Linux okolju s PowerShell 7.5.4 in v Windows CI s PowerShell 5.1 je bilo
+  uspešno izvedenih **39 kontrolnih preverjanj**:
   prva gradnja, hiter zagon brez sprememb, sprememba vsebine ob istem času datoteke,
   dodajanje/odstranjevanje virov, manjkajoča izvršljiva datoteka ali vtičnik,
   napaka prevajalnika/TLS brez veljavne oznake pripravljenosti, pravilna arhitektura
-  CRT, stara oznaka `ready-v012.txt`, izbor podatkovne mape in izolacija študentskega
+  CRT/TLS, kontrolne vsote arhivov, spremembe priložene kode zlib, stara oznaka
+  `ready-v012.txt`, izbor podatkovne mape in izolacija študentskega
   ZIP-a. Prevajalnik in Windows izvršljiva datoteka sta pri teh kontrolnih testih
   simulirana; kontrola vsebine datotek, Git in sestavljanje ZIP-a so dejanski.
 - Dejanski začasni Git repozitoriji preverijo uspešen `pull --ff-only`, lokalne
@@ -28,11 +30,14 @@
   sintaktično preverjeni; končna konfiguracija `qmake` je preverjena tudi po
   spremembi Git oznake programa.
 
-**Ni izvedeno v tem okolju:** dejanski Windows dvoklik, Windows PowerShell 5.1,
-prenos Qt/MinGW/OpenSSL na Windows, Windows gradnja in delovanje končnega
-Windows ZIP-a. GitHub Actions ima pripravljene korake za ta preverjanja, TLS,
-gradnjo brez sprememb, ponovno gradnjo po spremembi kode in izdelavo paketa;
-njihov uspeh še ni potrjen. Živi OpenAI klici niso bili izvedeni.
+**Windows gradnja in zagon paketa sta v preverjanju:**
+[Windows CI](https://github.com/Rokachello/SimulIDE-AI-Classroom/actions/runs/38092533909)
+je uspešno opravil kontrolne teste. Preostali koraki preverijo prenos orodij,
+gradnjo iz čiste kopije, TLS, gradnjo brez sprememb, ponovno gradnjo s spremembo
+vsebine in ohranjenim časom izvorne datoteke ter dejanski zagon `ZAZENI.cmd` iz
+razširjenega ZIP-a in naslov okna z različico ter Git revizijo. Njihov uspeh še
+ni potrjen. Ročni dvoklik na uporabnikovem računalniku in živi OpenAI klici niso
+bili izvedeni.
 
 ## Predhodno preverjanje učilnice
 
@@ -43,6 +48,7 @@ njihov uspeh še ni potrjen. Živi OpenAI klici niso bili izvedeni.
 
 ## Omejitve
 
-Windows prevod in zagon v tem okolju nista bila izvedena. Resnični OpenAI klici niso bili preizkušeni: integracija uporablja simulirane odgovore v testih. RAG se pripravi z uporabnikovim ključem ob zagonu strežnika.
+Windows prevod in zagon preverja ločen Windows CI; rezultat je naveden zgoraj.
+Resnični OpenAI klici niso bili preizkušeni: integracija uporablja simulirane odgovore v testih. RAG se pripravi z uporabnikovim ključem ob zagonu strežnika.
 Osnutki pogovora in kviza se shranijo na istem računalniku/uporabniškem profilu; niso še oddaja učitelju. Vezje shrani s Ctrl+S. Učiteljski obrazci opozarjajo na neshranjene spremembe, nimajo samodejnega shranjevanja.
 Pregled kaže zabeleženo dejavnost, ne trenutne spletne prisotnosti. Scaffolding krmilnik in sistematično spremljanje napačnih predstav še nista implementirana. Časovno vzorčenje ni nadomestilo za osciloskop.
