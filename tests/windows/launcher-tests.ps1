@@ -21,7 +21,7 @@ function Invoke-FixtureGit([string[]] $Arguments) {
 }
 try {
     $source = Join-Path $temp 'source with spaces'
-    New-Item -ItemType Directory -Force "$source/src", "$source/resources", "$source/scripts" | Out-Null
+    New-Item -ItemType Directory -Force "$source/src", "$source/resources", "$source/scripts", "$source/third_party" | Out-Null
     Set-Content "$source/src/main.cpp" 'original'
     Set-Content "$source/AI.pro" 'project'
     Set-Content "$source/SimulIDE.pri" 'include'
@@ -78,6 +78,12 @@ try {
     Set-Content "$source/resources/qm/generated.qm" 'generated'
     $null = Invoke-DesktopBuild $source $tools
     Assert-True ($script:builds -eq 8) 'generated translations do not invalidate the no-change launch'
+    Set-Content "$source/third_party/zlib.c" 'bundled C source'
+    $null = Invoke-DesktopBuild $source $tools
+    Assert-True ($script:builds -eq 9) 'bundled third-party source participates in the build fingerprint'
+    Set-Content "$source/third_party/zlib.c" 'changed bundled C source'
+    $null = Invoke-DesktopBuild $source $tools
+    Assert-True ($script:builds -eq 10) 'another bundled-source edit is detected without a new Git revision'
     # Check the real native command exit-status handling (not the compiler mock).
     $shell = (Get-Process -Id $PID).Path
     Assert-Throws { Invoke-Checked $shell @('-NoProfile', '-Command', 'exit 7') 'Testni ukaz' } 'nonzero native exit is propagated'

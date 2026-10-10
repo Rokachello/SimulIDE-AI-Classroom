@@ -56,7 +56,7 @@ function Get-DesktopFingerprint([string] $Root, [string] $Revision, [string] $To
     $entries = New-Object 'System.Collections.Generic.List[string]'
     $entries.Add("$Root|$Revision|$ToolIdentity")
     $files = @()
-    foreach ($folder in @('src', 'resources', 'scripts')) {
+    foreach ($folder in @('src', 'resources', 'scripts', 'third_party')) {
         $files += Get-ChildItem -LiteralPath (Join-Path $Root $folder) -Recurse -File |
             Where-Object { $_.FullName -notmatch '[\\/]resources[\\/]qm[\\/]' }
     }
