@@ -16,7 +16,8 @@ AboutDialog::AboutDialog( QWidget* parent )
     setWindowFlags( Qt::Window | Qt::WindowTitleHint | Qt::Tool
                    | Qt::WindowSystemMenuHint | Qt::WindowCloseButtonHint );
 
-    version->setText( QString( APP_VERSION )+" at Rev "+QString( REVNO ) );
+    version->setText( "SimulIDE AI "+QString( SIMULIDE_AI_RELEASE )+" | Git "+QString( SIMULIDE_GIT_COMMIT )
+                     +" | "+QString( APP_VERSION ) );
     compiled->setText( QString( BUILDDATE )+" (dd-MM-yy)" );
     icon->setPixmap( QPixmap(":/simulide.png") );
 }

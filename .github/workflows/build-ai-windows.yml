@@ -1,25 +1,46 @@
 name: Build SimulIDE AI for Windows
 on:
   workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+permissions:
+  contents: read
 jobs:
   windows:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - uses: jurplel/install-qt-action@v4
-        with:
-          version: '5.15.2'
-          arch: win64_mingw81
-          tools: 'tools_mingw,qt.tools.win64_mingw810'
-      - name: Add MinGW to PATH
+      - name: Test launch/update/data selection and package isolation
         shell: pwsh
+        run: ./tests/windows/launcher-tests.ps1
+      - name: Build using the same bootstrap as ZAZENI.cmd
+        shell: powershell
+        run: ./scripts/zazeni.ps1 -BuildOnly
+      - name: Check no-change launch and changed-source rebuild
+        shell: powershell
         run: |
-          $mingwBin = [IO.Path]::GetFullPath((Join-Path $env:QT_ROOT_DIR '../../Tools/mingw810_64/bin'))
-          $mingwBin >> $env:GITHUB_PATH
-      - name: Build
-        shell: pwsh
-        run: ./scripts/build-windows.ps1
+          $binary = 'build_AI/executables/SimulIDE_2.0.0-/simulide.exe'
+          $before = (Get-Item $binary).LastWriteTimeUtc
+          ./scripts/zazeni.ps1 -BuildOnly
+          if ((Get-Item $binary).LastWriteTimeUtc -ne $before) { throw 'Nespremenjena koda se je ponovno gradila.' }
+          Add-Content src/main.cpp "`n// CI rebuild probe"
+          ./scripts/zazeni.ps1 -BuildOnly
+          if ((Get-Item $binary).LastWriteTimeUtc -le $before) { throw 'Spremenjena koda ni bila ponovno prevedena.' }
+          # Undo only this CI probe, then package the original checked-out revision.
+          git restore -- src/main.cpp
+          ./scripts/zazeni.ps1 -BuildOnly
+      - name: Create portable student ZIP
+        shell: powershell
+        run: ./scripts/package-windows.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: SimulIDE-AI-Windows-build
-          path: build_AI/executables/SimulIDE_2.0.0-/**
+          name: SimulIDE-AI-Windows
+          path: dist/SimulIDE-AI-Windows.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-setup-log
+          path: setup.log
