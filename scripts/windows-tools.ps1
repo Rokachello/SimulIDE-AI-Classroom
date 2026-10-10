@@ -48,9 +48,51 @@ function Find-MingwBin([string] $ToolsRoot) {
 
 function Find-TlsBin([string] $ToolsRoot) {
     foreach ($ssl in (Get-ChildItem -LiteralPath $ToolsRoot -Filter libssl-1_1-x64.dll -Recurse -File -ErrorAction SilentlyContinue)) {
+        if ($ssl.FullName -match '[\\/]tls-source-build[\\/]') { continue }
         if (Test-Path (Join-Path $ssl.DirectoryName 'libcrypto-1_1-x64.dll')) { return $ssl.DirectoryName }
     }
     return $null
+}
+
+function Get-VerifiedArchive([string] $Uri, [string] $Destination, [string] $Sha256) {
+    if (-not (Test-Path -LiteralPath $Destination)) {
+        Invoke-WebRequest -UseBasicParsing -Uri $Uri -OutFile $Destination -TimeoutSec 600
+    }
+    if ((Get-FileHash -LiteralPath $Destination -Algorithm SHA256).Hash -ne $Sha256) {
+        throw "Prenos $Destination ni prestal preverjanja SHA256. Datoteko odstrani in poskusi znova."
+    }
+}
+
+function Build-LegacyTls([string] $ToolsRoot, [string] $MingwBin, [string] $Python) {
+    # Qt 5.15.2 needs OpenSSL 1.1. Qt's current catalog only ships OpenSSL 3.
+    # Build the last upstream 1.1.1 release rather than rename incompatible v3 DLLs.
+    $work = Join-Path $ToolsRoot 'tls-source-build'
+    $perlRoot = Join-Path $ToolsRoot 'strawberry-perl54231'
+    $prefix = Join-Path $ToolsRoot 'OpenSSL111w'
+    New-Item -ItemType Directory -Force $work, $perlRoot, $prefix | Out-Null
+    $perl = Join-Path $perlRoot 'perl/bin/perl.exe'
+    if (-not (Test-Path -LiteralPath $perl)) {
+        Write-SetupLog 'Pripravljam prenosni Perl za gradnjo TLS (uradna izdaja Strawberry Perl) ...'
+        $archive = Join-Path $work 'strawberry-perl.zip'
+        Get-VerifiedArchive 'https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54231_64bit/strawberry-perl-5.42.3.1-64bit-portable.zip' $archive '6a081a811781c30aca51dbc036afd93092af91e3297901f02c17043795a10690'
+        Expand-Archive -LiteralPath $archive -DestinationPath $perlRoot -Force
+    }
+    $archive = Join-Path $work 'openssl-1.1.1w.tar.gz'
+    Get-VerifiedArchive 'https://github.com/openssl/openssl/releases/download/OpenSSL_1_1_1w/openssl-1.1.1w.tar.gz' $archive 'cf3098950cb4d853ad95c0841f1f9c6d3dc102dccfcacd521d93925208b76ac8'
+    Invoke-Checked $Python @('-c', 'import tarfile,sys; tarfile.open(sys.argv[1]).extractall(sys.argv[2],filter="data")', $archive, $work) 'Razsirjanje preverjenih TLS virov'
+    $source = Join-Path $work 'openssl-1.1.1w'
+    $previousPath = $env:PATH
+    try {
+        $env:PATH = "$MingwBin;$(Join-Path $perlRoot 'perl/bin');$(Join-Path $perlRoot 'c/bin');$env:PATH"
+        Push-Location -LiteralPath $source
+        Write-SetupLog 'Gradim OpenSSL 1.1.1w za Qt 5.15.2; ob naslednjem zagonu se knjiznice ponovno uporabijo.'
+        $forwardPrefix = $prefix.Replace('\', '/')
+        Invoke-Checked $perl @('Configure', 'mingw64', 'shared', 'no-asm', 'no-tests', "--prefix=$forwardPrefix", "--openssldir=$forwardPrefix/ssl") 'Priprava gradnje TLS'
+        Invoke-Checked (Join-Path $MingwBin 'mingw32-make.exe') @('-j4') 'Gradnja TLS'
+        Invoke-Checked (Join-Path $MingwBin 'mingw32-make.exe') @('install_sw') 'Namestitev lokalnih TLS knjiznic'
+        Copy-Item -LiteralPath (Join-Path $source 'LICENSE') -Destination (Join-Path $prefix 'LICENSE.txt') -Force
+    } finally { Pop-Location; $env:PATH = $previousPath }
+    return Join-Path $prefix 'bin'
 }
 
 function Get-WindowsTools([string] $Root) {
@@ -97,12 +139,7 @@ function Get-WindowsTools([string] $Root) {
                 $mingw = Find-MingwBin $toolsRoot
             }
             if (-not $tls) {
-                try { Invoke-Checked $python @('-m', 'aqt', 'install-tool', 'windows', 'desktop', 'tools_openssl_x64', '-O', $toolsRoot) 'Prenos OpenSSL iz Qt' }
-                catch {
-                    $failure = $_.Exception.Message
-                    $available = Invoke-Probe $python @('-m', 'aqt', 'list-tool', 'windows', 'desktop')
-                    throw "$failure`nUradni seznam trenutno razpolozljivih Qt orodij:`n$($available.Output)"
-                }
+                $null = Build-LegacyTls $toolsRoot $mingw $python
                 $tls = Find-TlsBin $toolsRoot
             }
         }

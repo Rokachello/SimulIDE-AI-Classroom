@@ -15,7 +15,9 @@ vpisovati ročno.
 
 - **Prvi zagon:** dvoklikni `ZAZENI.cmd` v korenu. Zaganjalnik uporabi obstoječa orodja
   v `%LOCALAPPDATA%\SimulIDE-AI-V0.2\tools`; manjkajoče Python, Qt 5.15.2, MinGW 8.1
-  in TLS knjižnice prenese iz python.org, PyPI oziroma uradnega repozitorija Qt.
+  prenese iz python.org, PyPI oziroma uradnega repozitorija Qt. Če ni ustreznih TLS
+  knjižnic, iz preverjene uradne izvorne izdaje OpenSSL 1.1.1w pripravi različico za
+  Qt 5.15.2; uporabi prenosni Strawberry Perl iz njegove uradne izdaje GitHub.
   Prenosi ohranijo preverjanje TLS in kontrolnih vsot. Nato prevede kodo iz te mape
   in odpre njen SimulIDE. Prvi zagon zahteva internet in lahko traja več minut.
 - **Naslednji zagon:** znova dvoklikni `ZAZENI.cmd`. Nespremenjena koda se odpre hitro;
