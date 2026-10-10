@@ -29,5 +29,9 @@ try {
     }
 } catch {
     Write-SetupLog "NAPAKA: $($_.Exception.Message)"
+    if ($env:GITHUB_ACTIONS) {
+        $message = $_.Exception.Message.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+        Write-Host "::error::$message"
+    }
     exit 1
 } finally { if ($null -ne $lock) { $lock.Dispose() } }

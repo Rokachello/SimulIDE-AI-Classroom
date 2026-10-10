@@ -13,12 +13,17 @@ function Invoke-Checked([string] $Program, [string[]] $Arguments, [string] $Desc
     if (-not (Get-Command $Program -ErrorAction SilentlyContinue)) { throw "${Description}: manjka ukaz $Program." }
     # PS 5.1 turns native stderr into ErrorRecords, even for compiler warnings.
     $previous = $ErrorActionPreference
+    $messages = New-Object 'System.Collections.Generic.List[string]'
     try {
         $ErrorActionPreference = 'Continue'
-        & $Program @Arguments 2>&1 | ForEach-Object { Write-SetupLog ([string] $_) }
+        & $Program @Arguments 2>&1 | ForEach-Object {
+            Write-SetupLog ([string] $_)
+            $messages.Add([string] $_)
+            if ($messages.Count -gt 12) { $messages.RemoveAt(0) }
+        }
         $code = $LASTEXITCODE
     } finally { $ErrorActionPreference = $previous }
-    if ($code -ne 0) { throw "$Description ni uspelo (izhodna koda $code). Podrobnosti so v setup.log." }
+    if ($code -ne 0) { throw "$Description ni uspelo (izhodna koda $code). Podrobnosti so v setup.log.`n$($messages -join "`n")" }
 }
 
 function Invoke-Probe([string] $Program, [string[]] $Arguments) {

@@ -173,9 +173,13 @@ try {
         Assert-True ($entries -contains 'LICENSE-GPL-3.0.txt' -and $entries -contains 'LICENSE-AGPL-3.0.txt') 'portable package retains project license notices'
     } finally { $zip.Dispose() }
     Write-Host "PASS: $script:checks checks; Windows runtime/download/build still requires the Windows CI job."
+    Write-Host "::notice::PASS: $script:checks launcher checks completed."
 } catch {
     # Publish the actual failure as a CI annotation, as well as preserving the console error.
     $message = $_.Exception.Message.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
     Write-Host "::error::$message"
     throw
 } finally { Remove-Item -LiteralPath $temp -Recurse -Force }
+# GitHub's shell wrapper propagates LASTEXITCODE, including deliberately failed
+# native commands asserted above. Reaching here means every assertion succeeded.
+exit 0
