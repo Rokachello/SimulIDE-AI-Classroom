@@ -34,6 +34,11 @@ jobs:
       - name: Create portable student ZIP
         shell: powershell
         run: ./scripts/package-windows.ps1
+      - name: Launch the extracted portable ZIP through ZAZENI.cmd
+        shell: powershell
+        run: |
+          Expand-Archive -LiteralPath dist/SimulIDE-AI-Windows.zip -DestinationPath dist/portable-smoke -Force
+          ./tests/windows/portable-smoke.ps1 -PackageRoot (Join-Path $pwd 'dist/portable-smoke')
       - uses: actions/upload-artifact@v4
         with:
           name: SimulIDE-AI-Windows
