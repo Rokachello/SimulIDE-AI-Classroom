@@ -1,0 +1,25 @@
+name: Build SimulIDE AI for Windows
+on:
+  workflow_dispatch:
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          arch: win64_mingw81
+          tools: 'tools_mingw,qt.tools.win64_mingw810'
+      - name: Add MinGW to PATH
+        shell: pwsh
+        run: |
+          $mingwBin = [IO.Path]::GetFullPath((Join-Path $env:QT_ROOT_DIR '../../Tools/mingw810_64/bin'))
+          $mingwBin >> $env:GITHUB_PATH
+      - name: Build
+        shell: pwsh
+        run: ./scripts/build-windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SimulIDE-AI-Windows-build
+          path: build_AI/executables/SimulIDE_2.0.0-/**

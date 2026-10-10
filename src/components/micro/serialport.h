@@ -1,0 +1,82 @@
+/***************************************************************************
+ *   Copyright (C) 2012 by Santiago González                               *
+ *                                                                         *
+ ***( see copyright.txt file at root folder )*******************************/
+
+#pragma once
+
+#include <QSerialPort>
+
+#include "component.h"
+#include "e-element.h"
+#include "usartmodule.h"
+
+class LibraryItem;
+class CustomButton;
+class QGraphicsProxyWidget;
+
+class SerialPort : public Component, public UsartModule, public eElement
+{
+    public:
+        SerialPort( QString type, QString id );
+        ~SerialPort();
+        
+ static Component* construct( QString type, QString id );
+ static LibraryItem* libraryItem();
+
+        void stamp() override;
+        void updateStep() override;
+        void runEvent() override;
+
+        bool autoOpen() { return m_autoOpen; }
+        void setAutoOpen( bool a ) { m_autoOpen = a; }
+
+        QString port(){return m_portName;}
+        void setPort( QString name ){ m_portName = name; update();}
+
+        QSerialPort::FlowControl flowControl() { return m_flowControl; }
+        void setFlowControl( QSerialPort::FlowControl fc ) { m_flowControl = fc; }
+
+        void setSerialMon( bool s );
+
+        void setIdLabel( QString id ) override;
+
+        void byteReceived( uint8_t byte ) override;
+        void frameSent( uint8_t data ) override;
+
+        void paint( QPainter* p, const QStyleOptionGraphicsItem* o, QWidget* w ) override;
+
+        void onbuttonclicked();
+        void slotClose();
+        void slotOpenTerm();
+
+    private slots:
+        void readData();
+
+    protected:
+        virtual void setflip() override;
+        virtual void contextMenu( QGraphicsSceneContextMenuEvent* event, QMenu* menu ) override;
+
+    private:
+        void open();
+        void close();
+
+        CustomButton* m_button;
+        QGraphicsProxyWidget* m_proxy;
+
+        QSerialPort* m_serial;
+
+        bool m_receiving;
+        bool m_sending;
+        bool m_autoOpen;
+
+        QByteArray m_serData;
+        QByteArray m_uartData;
+
+        QString m_portName;
+
+        /*QSerialPort::DataBits    m_dataBits;
+        QSerialPort::Parity      m_parity;
+        QSerialPort::StopBits    m_stopBits;*/
+        QSerialPort::FlowControl m_flowControl;
+};

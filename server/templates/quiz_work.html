@@ -1,0 +1,21 @@
+{% extends 'base.html' %}{% block content %}
+{% include 'lesson_nav.html' %}
+
+<p>Oddaje so shranjeni posnetki vezja ob oddaji. Kasnejše spremembe študentovega vezja jih ne spreminjajo. Kviz ima svoja vprašanja in vezje ob zaključku.</p>
+<section><h2>Oddane naloge</h2>
+{% for s in submissions %}<article id="submission-{{s.id}}"><h3>{{s.name}} · oddaja #{{s.id}}</h3><p>{{s.created|readable_time}}</p><pre>{{s.comment or 'Študent ni dodal komentarja.'}}</pre><p><a href="/submission/{{s.id}}/circuit">Prenesi oddano vezje (.sim2)</a> · <a href="/submission/{{s.id}}/snapshot" target="_blank" rel="noopener">Posnetek konteksta (JSON)</a></p></article>{% if not loop.last %}<hr>{% endif %}{% else %}<p>Pri tej uri še ni oddanih nalog.</p>{% endfor %}</section>
+<section><h2>Poskusi kviza</h2><p>Vprašanja z izbiro in številčni odgovori so preverjeni samodejno. Pri razlagah dodeli točke; rezultat je do takrat delen. Med aktivnim poskusom študent ne more uporabljati asistenta, niti pri drugih urah.</p>
+{% for a in attempts %}<details class="card" id="attempt-{{a.id}}" {% if a.pending_review %}open{% endif %}><summary>{{a.name}} · {{a.title}} · {{ {'active':'V teku','complete':'Oddano','abandoned':'Prekinjeno'}.get(a.status,a.status) }} · {{a.score}}/{{a.max_score}} točk{% if a.pending_review %} · čaka na oceno{% endif %}</summary>
+<p>Poskus #{{a.id}} · različica kviza #{{a.quiz_id}}<br>Začetek: {{a.created|readable_time}}{% if a.finished %}<br>Zaključek: {{a.finished|readable_time}}{% endif %}</p>
+{% if a.status=='active' %}<p class="notice">Asistent je temu študentu trenutno zaklenjen. Če je poskus obtičal, ga lahko prekineš in odkleneš pomoč. Prekinjeni poskus ostane v evidenci.</p><form action="/quiz-attempt/{{a.id}}/unlock" method="post"><input type="hidden" name="csrf" value="{{csrf}}"><button class="secondary">Prekini poskus in odkleni asistenta</button></form>{% endif %}
+{% if a.status=='complete' %}<p><a href="/quiz-attempt/{{a.id}}/circuit">Prenesi vezje ob oddaji kviza (.sim2)</a> · <a href="/quiz-attempt/{{a.id}}/snapshot" target="_blank" rel="noopener">Posnetek konteksta ob oddaji (JSON)</a></p>{% endif %}
+{% for q in a.questions %}{% set qi=loop.index0 %}{% set result=a.results[qi] if a.results and qi < a.results|length else none %}{% set answer=a.answers[qi] if a.answers and qi < a.answers|length else none %}
+<article><h3>{{loop.index}}. {{q.prompt}}</h3><p>Največ {{q.points}} točk · {{ {'choice':'Izbira odgovora','number':'Številčni odgovor','text':'Razlaga'}.get(q.kind,q.kind) }}</p>
+{% if q.kind=='choice' %}<ol>{% for option in q.options %}<li>{{option}}{% if loop.index0==q.answer %} <strong>· pravilen odgovor</strong>{% endif %}</li>{% endfor %}</ol><p>Študentov odgovor: {% if answer is number and answer >= 0 and answer < q.options|length %}{{q.options[answer|int]}}{% elif answer is not none %}{{answer}}{% else %}Ni oddan{% endif %}</p>
+{% elif q.kind=='number' %}<p>Študentov odgovor: {{answer if answer is not none else 'Ni oddan'}}<br>Pravilna vrednost: {{q.answer}} · dovoljeni odklon ±{{q.tolerance}}</p>
+{% else %}<h4>Študentova razlaga</h4><pre>{{answer if answer is not none else 'Ni oddana'}}</pre>{% endif %}
+{% if result %}<p>{% if result.points is none %}Čaka na učiteljevo oceno.{% else %}Dodeljeno: {{result.points}}/{{q.points}} točk.{% endif %}</p>{% endif %}
+{% if a.status=='complete' and q.kind=='text' %}<form action="/quiz-attempt/{{a.id}}/grade" method="post"><input type="hidden" name="csrf" value="{{csrf}}"><input type="hidden" name="question_index" value="{{qi}}"><div class="row"><label>Dodeljene točke<input name="points" type="number" min="0" max="{{q.points}}" step="any" required value="{{result.points if result and result.points is not none else ''}}"></label><label>Povratna informacija<input name="note" maxlength="1500" required placeholder="Kaj je pravilno oziroma kaj naj še preveri?"></label></div><button>Shrani oceno</button></form>{% endif %}
+{% for g in a.grades if g.question_index==qi %}<blockquote>{{g.points}} točk · {{g.note}}{% if g.created %}<br><small>{{g.created|readable_time}}</small>{% endif %}</blockquote>{% endfor %}
+</article>{% endfor %}</details>{% else %}<p>Študenti še niso začeli kviza.</p>{% endfor %}</section>
+{% endblock %}

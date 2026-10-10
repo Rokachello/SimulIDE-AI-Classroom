@@ -1,0 +1,7 @@
+# Izbira napetostnega vira: Fixed Voltage, Voltage Source, Wave Generator, Battery, Rail
+Preverjeno v src/components/sources/{fixedvolt,voltsource,wavegen,battery,rail,ground}.cpp in registru itemlibrary.cpp naše različice. Kategorija je Sources (izviri vmesniških imen so angleški; prevodi se lahko razlikujejo).
+Za začetni fiksni napetostni delilnik izberi Fixed Voltage. V Properties nastavi Voltage, npr. 5 V. Vir ima en izhod glede na maso. Z gumbom na elementu vključi izhod; ne sklepaj, da vir napaja vezje zgolj zato, ker je postavljen. Dodaj Ground (0 V) na spodnji konec delilnika.
+Voltage Source je nastavljiv napetostni vir z vrtljivim gumbom. Current Value je trenutna napetost, Max. Voltage in Min. Voltage določata meje. Max. Voltage 5 V ne dokazuje, da je trenutni izhod 5 V! Preveri Current Value ter vklop. To ni enako Fixed Voltage.
+Wave Generator (interni tip WaveGen) ustvarja signale Sine, Saw, Triangle, Square, Random ali Wav. Ima lastnosti Wave Type, Frequency, Phase shift; za stalno napajanje fiksnega delilnika običajno uporabi Fixed Voltage.
+Battery je dvopolni baterijski vir; lastnosti Voltage in Resistance opisujeta napetost ter notranjo upornost. Rail ima en priključek in nastavljeno Voltage. Ground je referenca 0 V.
+DC Voltage Source, AC Voltage Source, PULSE in PRESET niso imena teh elementov v našem katalogu. Potentiometer in Thermistor sta upora, ne napetostna vira.

@@ -1,0 +1,28 @@
+# Build output
+build*/
+*.o
+*.obj
+*.a
+*.so
+*.dll
+*.exe
+Makefile
+*.pro.user
+.qmake.stash
+# Python environments, caches, and local classroom data
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+classroom-data/
+data/
+*.sqlite
+*.sqlite3
+*.db
+.env
+.env.*
+!.env.example
+# Local logs and generated vector store configuration
+*.log
+server/vector-rag.json
+server/vector-rag.lock

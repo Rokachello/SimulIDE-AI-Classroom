@@ -1,0 +1,147 @@
+[
+  {
+    "type": "Fixed Voltage",
+    "name": "Fixed Voltage",
+    "body": "Namen: stalen napetostni vir z enim izhodnim priključkom proti referenci Ground. Vidni nastavitvi Main: Voltage [Voltage], število v V, začetno 5 V; Small size [Small], logična izbira, začetno false, spremeni velikost simbola. Izhod vključimo ali izključimo z gumbom na elementu. Out je skrita shranjena lastnost stanja gumba, ne običajno polje v pogovornem oknu. Za dejansko napetost preveri tudi stanje gumba in simulacijo. Primer: za delilnik nastavi Voltage na 5 V, vključi izhod in spodnji upor poveži z Ground. Napetost je glede na maso; element nima ločenega negativnega priključka.",
+    "sources": [
+      "src/components/sources/fixedvolt.cpp"
+    ],
+    "verified_defaults_display_units": {
+      "Voltage": 5,
+      "Small": false
+    }
+  },
+  {
+    "type": "Voltage Source",
+    "name": "Voltage Source",
+    "body": "Namen: nastavljiv napetostni vir z vrtljivim gumbom, en izhod proti Ground. Vidne nastavitve: Current Value [Value_Volt] v V je trenutna vrednost; Max. Voltage [MaxValue] in Min. Voltage [MinValue] v V določata območje gumba. Konstruktor nastavi MaxValue na 5 V in gumb na 0. Max. Voltage ni trenutna izhodna napetost! Vrtljivi gumb spreminja izhod, gumb za vklop ga omogoči. Za fiksni delilnik je Fixed Voltage preprostejša izbira. Razlikuj največjo dovoljeno nastavitev gumba od dejanske vrednosti v posnetku vezja.",
+    "sources": [
+      "src/components/sources/voltsource.cpp",
+      "src/components/sources/varsource.cpp"
+    ],
+    "verified_defaults_display_units": {
+      "Value_Volt": 0,
+      "MaxValue": 5,
+      "MinValue": 0
+    }
+  },
+  {
+    "type": "Battery",
+    "name": "Battery",
+    "body": "Battery ima dva električna priključka in model notranje upornosti. Main: Voltage [Voltage] v V, začetno 5 V; Resistance [Resistance] s prikazno enoto mΩ, začetna prevodnost 1000 S ustreza notranji upornosti 1 mΩ. Rdeči priključek označuje pozitivno stran. Oba priključka poveži v tokokrog; po potrebi določi Ground. Zaradi notranje upornosti lahko napetost na bremenu odstopa od nastavljene. Voltage setter vrednosti pod 1e-12 V omeji na 1e-12 V; to ni dvopolaren vir za negativno nastavitev napetosti.",
+    "sources": [
+      "src/components/sources/battery.cpp"
+    ],
+    "verified_defaults_display_units": {
+      "Voltage": 5,
+      "Resistance": 1
+    }
+  },
+  {
+    "type": "WaveGen",
+    "name": "Wave Generator",
+    "body": "Wave Generator ustvarja časovno spremenljiv signal. Wave Type [Wave_Type] ima izbire Sine, Saw, Triangle, Square, Random, Wav; začetno Sine. Frequency [Freq] ima prikazno enoto kHz, Phase shift [Phase] stopinje (začetno 0), Minimum Steps [Steps] je celo število (začetno 100), Duty [Duty] odstotki (začetno 50), File [File] besedilna pot za Wav in Always On [Always_On] logična izbira. Electric: Bipolar [Bipolar] in Floating [Floating] sta začetno false; Semi Amplitude [Semi_Ampli] in Middle Voltage [Mid_Volt] sta v V. Polamplituda ni vršna-vršna napetost. Bipolar pokaže dodatni referenčni priključek in omogoči nastavitev Floating. Duty se prikaže pri Triangle ali Square; File samo pri Wav. Nastavitve uporabi glede na obliko signala; za stalen delilnik uporabi Fixed Voltage. Za potek skozi čas uporabi Oscope; en trenutni posnetek ni oscilogram.",
+    "sources": [
+      "src/components/sources/wavegen.cpp",
+      "src/components/sources/clock-base.cpp"
+    ],
+    "verified_defaults_display_units": {
+      "Wave_Type": "Sine",
+      "Phase": 0,
+      "Steps": 100,
+      "Duty": 50,
+      "Bipolar": false,
+      "Floating": false,
+      "Mid_Volt": 0
+    },
+    "verified_choices": {
+      "Wave_Type": [
+        "Sine",
+        "Saw",
+        "Triangle",
+        "Square",
+        "Random",
+        "Wav"
+      ]
+    }
+  },
+  {
+    "type": "Resistor",
+    "name": "Resistor",
+    "body": "Resistor je dvopolni upor. Main: Resistance [Resistance], število v Ω; konstruktor nastavi 100 Ω. Vnesi vrednost z ustrezno enoto, npr. 1 kΩ pomeni 1000 Ω. Lastnost ShowProp določa prikaz oznake in ni električna upornost. Za delilnik sta upora v seriji med virom in Ground, izhod je njuno stičišče. Upor nima napajalnega priključka ali polaritete. Primer pri neobremenjenem delilniku 5 V: zgornji upor 1 kΩ, spodnji 1,5 kΩ dajeta 3 V.",
+    "sources": [
+      "src/components/passive/resistors/resistor.cpp"
+    ],
+    "verified_defaults_display_units": {
+      "Resistance": 100
+    }
+  },
+  {
+    "type": "Potentiometer",
+    "name": "Potentiometer",
+    "body": "Potentiometer ima tri priključke A, M (drsnik) in B; v izvirni nezasukani postavitvi sta A levo, B desno in M spodaj. Main: Resistance [Resistance] v Ω je skupna upornost A–B, začetno 1 kΩ. Current Value [Value_Ohm] v Ω določa del upornosti A–M; konstruktor nastavi gumb na sredino (500 od 1000), torej približno 500 Ω pri 1 kΩ. Preostanek M–B je skupna upornost minus A–M. Setter omeji Current Value na skupno upornost in navzdol na 1e-12 Ω; model skrajne položaje dodatno približa z majhnimi neničelnimi upornostmi. Dial: Slider preklopi prikaz na drsnik, Scale spremeni velikost upravljalnika (mora biti pozitivna). Za nastavljiv delilnik poveži A in B na napajanje ter Ground, izhod meri z M proti Ground; smer spremembe je odvisna od povezave.",
+    "sources": [
+      "src/components/passive/resistors/potentiometer.cpp",
+      "src/gui/circuitwidget/dialed.cpp"
+    ],
+    "verified_defaults_display_units": {
+      "Resistance": 1000,
+      "Value_Ohm": 500
+    }
+  },
+  {
+    "type": "Thermistor",
+    "name": "Thermistor",
+    "body": "Thermistor je dvopolni temperaturno odvisni upor. Podedovane vidne nastavitve Main: Current Value [Temp] v ºC, začetno 25; Minimum Value [Min_Temp], začetno 0 ºC; Maximum Value [Max_Temp], začetno 200 ºC; Dial Step [Dial_Step] v ºC, začetno 0 (brez dodatnega zaokroževanja). Parameters: B [B], celo število, začetno 3455; R25 [R25], celo število v Ω, začetno 10000 Ω. R25 pomeni upornost pri 25 ºC. Model uporablja temperaturo v kelvinih v izrazu R=R25*exp(B*(1/T-1/298.15)); pri privzetem pozitivnem B je NTC: višja temperatura pomeni manjšo upornost. V tej različici setPtc takoj vrne in nima učinka; ne ponujaj izbire PTC kot delujoče nastavitve. Dial ima Slider in Scale. Za izhod delilnika, ki raste s temperaturo, postavi ta NTC v zgornjo vejo proti pozitivnemu napajanju, fiksni upor spodaj proti Ground. Temperature ne zamenjuj z upornostjo.",
+    "sources": [
+      "src/components/passive/resist_sensors/thermistor.cpp",
+      "src/components/passive/resist_sensors/thermistorbase.cpp",
+      "src/gui/circuitwidget/dialed.cpp"
+    ],
+    "verified_defaults_display_units": {
+      "Temp": 25,
+      "Min_Temp": 0,
+      "Max_Temp": 200,
+      "Dial_Step": 0,
+      "B": 3455,
+      "R25": 10000
+    }
+  },
+  {
+    "type": "LDR",
+    "name": "LDR",
+    "body": "LDR je dvopolni svetlobno odvisni upor. Main: Current Value [Lux] v Lux, začetno 1 lux; Minimum Value [Min_Lux] in Maximum Value [Max_Lux] določata območje (podedovano začetno 0 do 1000); Dial Step [Dial_Step] v Lux, začetno 0. Parameters: Gamma [Gamma], realno število brez enote, začetno 0.8582; R1 [R1], celo število v Ω, začetno 127410 Ω. Model je R=R1*Lux^(-Gamma), zato R1 pomeni upornost pri 1 lux in pri pozitivni Gamma več svetlobe zmanjša upornost. Za eksperiment uporabljaj pozitivno osvetljenost: pri 0 lux je potenčni izraz singularen. Dial ima Slider in Scale. Lux ne pomeni upornosti in LDR sam ne ustvarja napetosti. Vpliv osvetljenosti na izhodno napetost je odvisen od položaja LDR v delilniku.",
+    "sources": [
+      "src/components/passive/resist_sensors/ldr.cpp",
+      "src/gui/circuitwidget/dialed.cpp"
+    ],
+    "verified_defaults_display_units": {
+      "Lux": 1,
+      "Min_Lux": 0,
+      "Max_Lux": 1000,
+      "Dial_Step": 0,
+      "Gamma": 0.8582,
+      "R1": 127410
+    }
+  },
+  {
+    "type": "Voltimeter",
+    "name": "Voltmeter",
+    "body": "Voltmeter meri razliko napetosti med dvema merilnima priključkoma: potencial rdečega minus potencial drugega, rezultat v V. Priključi ga vzporedno med izhod in referenco, npr. Ground. Meter ima tudi tretji izhodni priključek, ki oddaja številčno vrednost meritve kot napetost za nadaljnjo obdelavo; to ni tretji običajni merilni vhod. Konstruktor voltmetra ne deklarira nastavljivega merilnega območja ali vhodne upornosti v Main; ne izmišljaj takega polja. Negativni predznak je lahko posledica zamenjanih merilnih priključkov. Pri ustavljeni simulaciji iz posnetka brez živih odčitkov ne sklepaj, da je meritev 0 V.",
+    "sources": [
+      "src/components/meters/voltmeter.cpp",
+      "src/components/meters/meter.cpp"
+    ],
+    "verified_defaults_display_units": {}
+  },
+  {
+    "type": "Amperimeter",
+    "name": "Ampmeter",
+    "body": "Ampmeter meri tok v A skozi merilno vejo. Dva merilna priključka vstavi zaporedno v vejo, katere tok meriš. Model ima zelo majhno upornost 1e-6 Ω; ta vrednost je nastavljena v konstruktorju in ni deklarirana kot običajno nastavljivo polje Main. Ne priklapljaj ampermetra vzporedno neposredno na napetostni vir, ker s tem v simulaciji ustvariš skoraj kratek stik. Skupni razred Meter doda tretji izhod, ki številčno vrednost meritve predstavlja kot napetost; ni dodaten običajni merilni vhod. Za časovni potek potrebuješ ustrezen graf, en odčitek kaže le trenutno stanje.",
+    "sources": [
+      "src/components/meters/ampmeter.cpp",
+      "src/components/meters/meter.cpp"
+    ],
+    "verified_defaults_display_units": {}
+  }
+]

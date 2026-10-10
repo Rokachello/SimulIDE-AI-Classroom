@@ -1,0 +1,8 @@
+{% extends 'base.html' %}{% block content %}
+<a href="/">← Ure in študenti</a><h2>Glavni system prompt</h2>
+<p>Ta navodila veljajo pri vseh urah. Dodajo se jim prompt, učni cilji in naloga posamezne ure. Spremembe veljajo za naslednje vprašanje; strežnika ni treba ponovno zagnati.</p>
+<p>Trenutna različica: {{current.version}}. Uredi tudi jezik, način pomoči, uporabo dokumentacije in omejitve. Celoten dejansko uporabljen prompt se shrani ob vsakem novem vprašanju.</p>
+<form action="/settings/prompt" method="post"><input type="hidden" name="csrf" value="{{csrf}}"><label>System prompt<textarea name="prompt" style="min-height:500px" required>{{current.text}}</textarea></label><button name="action" value="save">Shrani novo različico</button></form>
+<form action="/settings/prompt" method="post" style="margin-top:20px"><input type="hidden" name="csrf" value="{{csrf}}"><button name="action" value="reset">Povrni privzeti prompt</button></form>
+<details class="card"><summary>Zadnjih 20 različic</summary>{% for v in versions %}<details><summary>Različica {{v.version}} · {{v.created|readable_time}}</summary><pre>{{v.text}}</pre></details>{% endfor %}</details>
+{% endblock %}

@@ -1,0 +1,4 @@
+# Resistor, Potentiometer in napetostni delilnik: upor in upornost
+Preverjeno: src/components/passive/resistors/resistor.cpp in potentiometer.cpp. Resistor je v kategoriji Resistors. Lastnost Resistance določa upornost v Ω.
+Potentiometer ima tri priključke: dve krajišči uporne poti in drsnik. Resistance je skupna upornost; Current Value določa trenutni položaj kot upornost. Z vrtljivim gumbom spreminjaš drsnik. Za dva nespremenljiva upora uporabi dva elementa Resistor.
+Delilnik: zgornji upor med napajanjem in izhodnim vozliščem, spodnji med izhodnim vozliščem in maso. Brez obremenitve je U_izhod = U_vhod · R_spodnji / (R_zgornji + R_spodnji). Pri dveh enakih uporih in 5 V dobiš 2,5 V. Za 3 V iz 5 V potrebuješ razmerje R_spodnji/R_zgornji = 1,5; na primer 1 kΩ zgoraj in 1,5 kΩ spodaj. To je primer, ne odčitek študentovega vezja. Obremenitev spremeni razmerje; preveri povezave in meritev. Ne zamenjaj zgornjega in spodnjega upora.

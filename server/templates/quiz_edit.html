@@ -1,0 +1,22 @@
+{% extends 'base.html' %}{% block content %}
+{% include 'lesson_nav.html' %}
+
+<p>Pripravi vprašanja za najpomembnejše koncepte pri tej vaji. Med aktivnim kvizom je pomoč asistenta zaklenjena. Besedilne razlage oceniš po oddaji.</p>
+{% if error %}<p class="notice">{{error}}</p>{% endif %}
+{% if request.args.get('saved') %}<p class="success" role="status">{{'Kviz je objavljen. Študenti ga lahko začnejo pri odprti uri.' if quiz and quiz.published else 'Osnutek je shranjen. Študenti ga še ne morejo začeti.'}}</p>{% endif %}
+<p class="badge">{{'Objavljen kviz' if quiz and quiz.published else 'Osnutek' if quiz else 'Kviz še ni pripravljen'}}</p>
+<form id="quizEditor" method="post" enctype="multipart/form-data">
+<input type="hidden" name="csrf" value="{{csrf}}"><input id="questionsJson" type="hidden" name="questions_json">
+<section><label>Naslov kviza<input name="title" value="{{quiz.title if quiz else 'Zaključni kviz'}}" required maxlength="200"></label>
+<label>Začetno vezje za kviz (.sim2, neobvezno)<input type="file" name="circuit_file" accept=".sim2"></label>
+{% if quiz and quiz.circuit %}<p>Priloženo: <a href="/quiz/{{quiz.id}}/circuit">Začetno vezje .sim2</a>. Če ne izbereš nove datoteke, se obstoječe vezje ohrani.</p><label><input type="checkbox" name="keep_circuit" value="0"> Odstrani obstoječe priloženo vezje pri naslednji različici</label>{% else %}<small>Študent odpre svojo kopijo vezja; njegove spremembe ne spreminjajo tvoje predloge.</small>{% endif %}
+<p>»Shrani osnutek« kviz skrije za nove poskuse. »Objavi študentom« ga omogoči pri odprti uri. Že začeti poskusi ohranijo svojo različico.</p></section>
+<div id="questionList"></div><p><button type="button" id="addQuestion" class="secondary">+ Dodaj vprašanje</button></p>
+<p id="editorError" class="notice" hidden role="alert"></p><div class="save-bar"><span id="editorState" role="status">Spremembe še niso shranjene.</span><div class="button-row"><button type="button" id="previewQuiz" class="secondary">Predogled</button><button type="submit" name="action" value="draft" class="secondary">Shrani osnutek</button><button type="submit" name="action" value="publish">Objavi študentom</button></div></div>
+</form>
+{% if versions %}<details class="card"><summary>Shranjene različice</summary>{% for v in versions %}<p>Različica {{v.id}} · {{v.created|readable_time}} · {{'Objavljena' if v.published else 'Osnutek'}} · {{v.title}}</p>{% endfor %}</details>{% endif %}
+<noscript><p class="notice">Za urejanje vprašanj omogoči JavaScript v brskalniku.</p></noscript>
+<dialog id="quizPreview"><div class="page-heading"><h2>Predogled za študenta</h2><button type="button" id="closePreview" class="secondary">Zapri</button></div><p>Tu preveriš besedilo in vrstni red. Predogled ne začne poskusa in ne shranjuje odgovorov.</p><div id="previewQuestions"></div></dialog>
+<script type="application/json" id="initialQuestions">{{ (quiz.questions if quiz else [])|tojson }}</script>
+<script src="/static/quiz-editor.js" defer></script>
+{% endblock %}

@@ -1,0 +1,10 @@
+<a class="back-link" href="/">← Učne ure</a>
+<div class="page-heading"><div><h1>{{lesson.title}}</h1><p>{{lesson.lesson_date or 'Datum ni nastavljen'}} · {{lesson.group_name or 'Skupina ni nastavljena'}} · <span class="badge">{{'Odprta' if lesson.active else 'Zaprta'}}</span></p></div></div>
+<nav class="lesson-nav" aria-label="Pregled učne ure">
+<a href="/lesson/{{lesson.id}}/overview" {% if request.path.endswith('/overview') %}aria-current="page"{% endif %}>Pregled ure</a>
+<a href="/lesson/{{lesson.id}}" {% if request.path=='/lesson/'~lesson.id and request.args.get('view','conversation')=='conversation' %}aria-current="page"{% endif %}>Pogovori</a>
+<a href="/lesson/{{lesson.id}}/quiz" {% if request.path.endswith('/quiz') %}aria-current="page"{% endif %}>Priprava kviza</a>
+<a href="/lesson/{{lesson.id}}/work" {% if request.path.endswith('/work') %}aria-current="page"{% endif %}>Oddaje in rezultati</a>
+<a href="/lesson/{{lesson.id}}?view=summary" {% if request.args.get('view')=='summary' %}aria-current="page"{% endif %}>Povzetek ure</a>
+<a href="/lesson/{{lesson.id}}?view=help" {% if request.args.get('view')=='help' %}aria-current="page"{% endif %}>Pomoč</a>
+<a href="/lesson/{{lesson.id}}?export=1">Izvoz</a></nav>

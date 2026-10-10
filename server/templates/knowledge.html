@@ -1,0 +1,28 @@
+{% extends 'base.html' %}{% block content %}
+<a href="/">← Ure in študenti</a><h2>Shramba gradiv za RAG</h2>
+<p>Skupna shramba učiteljev na tem strežniku. Študenti gradiv ne urejajo; asistent dobi ustrezne odlomke. Mape organizirajo shrambo, izbira ure pa določa uporabo gradiva.</p>
+<nav><a href="/knowledge">Vse mape</a>{% for f in folders %} · <a href="/knowledge?folder={{f.id}}">📁 {{f.name}} ({{f.count}})</a>{% endfor %}</nav>
+<details class="card"><summary>Ustvari ali preimenuj mapo</summary><form action="/knowledge/folders" method="post"><input type="hidden" name="csrf" value="{{csrf}}"><label>Mapa<select name="id"><option value="0">Nova mapa</option>{% for f in folders %}<option value="{{f.id}}">{{f.name}}</option>{% endfor %}</select></label><label>Ime<input name="name" required maxlength="80"></label><button>Shrani mapo</button></form></details>
+<p>Katalog vsebuje {{catalog['items']|length}} osnovnih elementov naše različice. Ob vprašanju strežnik poišče ustrezne odlomke navodil in gradiv.</p>
+<section class="card"><h3>Vektorsko iskanje dokumentacije SimulIDE</h3>
+{% if vector_rag.state=='ready' %}<p>Pripravljeno: {{vector_rag.count}} dokumentov. Pri vprašanjih strežnik uporablja tudi OpenAI vector store.</p>
+{% elif vector_rag.state=='indexing' %}<p>Priprava še ni končana: {{vector_rag.count}} dokumentov je indeksiranih. Znova zaženi PRIPRAVI-RAG.cmd za nadaljevanje.</p>
+{% else %}<p>Še ni nastavljeno. Na strežniškem računalniku zaženi PRIPRAVI-RAG.cmd. Lokalno iskanje že deluje.</p>{% endif %}
+<small>Stanje prikazuje shranjeno pripravo; dosegljivost se preveri ob vprašanju. Shranjuje se javna dokumentacija, ne pogovori ali posnetki vezij. Gradiva, ki jih dodaš spodaj, se še vedno iščejo lokalno glede na izbrano uro.</small></section>
+<p>Vsebino gradiv obravnava kot referenco; vedenje asistenta še vedno določa system prompt pri uri. Naloži gradiva, za katera imaš dovoljenje za uporabo. Izbrani odlomki se pošljejo OpenAI.</p>
+{% macro fields(d) %}
+<input type="hidden" name="csrf" value="{{csrf}}"><input type="hidden" name="id" value="{{d.id if d else 0}}">
+<label>Mapa<select name="folder_id">{% for f in folders %}<option value="{{f.id}}" {% if (d and d.folder_id==f.id) or (not d and (selected_folder==f.id or (selected_folder==0 and f.id==1))) %}selected{% endif %}>{{f.name}}</option>{% endfor %}</select></label>
+<label>Naslov<input name="title" value="{{d.title if d else ''}}" maxlength="200" placeholder="Pri uvozu lahko ostane prazno"></label>
+<label>Vir / avtor / povezava<input name="source" value="{{d.source if d else ''}}" maxlength="500" placeholder="Npr. Moja navodila za delilnik, poglavje 2"></label>
+<label>Uporabi pri uri<select name="lesson_id"><option value="0">Vse ure</option>{% for l in lessons %}<option value="{{l.id}}" {% if d and d.lesson_id==l.id %}selected{% endif %}>#{{l.id}} · {{l.title}}</option>{% endfor %}</select></label>
+<label>Besedilo<textarea name="body" maxlength="250000" placeholder="Prilepi navodila ali izberi datoteko spodaj.">{{d.body if d else ''}}</textarea></label>
+<label>Ali uvozi datoteko (nadomesti besedilo)<input name="file" type="file" accept=".pdf,.txt,.md"></label>
+<small>PDF z besedilom, TXT in Markdown do 8 MB; največ 150 strani / 250000 znakov. Slike, sheme in skenirani PDF potrebujejo dodatno obdelavo/OCR. Izvirna datoteka in besedilo za RAG se shranita. Urejanje besedila ne spreminja izvirne datoteke. Preveri izvlečeno besedilo po uvozu.</small>
+<label><input type="checkbox" name="active" {% if not d or d.active %}checked{% endif %}> Gradivo vključeno v iskanje</label><p><button>Shrani gradivo</button></p>
+{% endmacro %}
+<section><h3>Dodaj gradivo</h3><form action="/knowledge" method="post" enctype="multipart/form-data">{{fields(None)}}</form></section>
+{% for d in documents %}<details class="card"><summary>{{d.folder_name}} / {{d.title}} · {{'vključeno' if d.active else 'izključeno'}} · {{d.lesson_title or 'vse ure'}}</summary><p><a href="/knowledge/{{d.id}}/download">{{'Prenesi izvirno datoteko' if d.has_original else 'Prenesi besedilo'}}</a></p><form action="/knowledge" method="post" enctype="multipart/form-data">{{fields(d)}}</form></details>{% endfor %}
+<details class="card"><summary>Vgrajena navodila in točna imena elementov</summary><p>{{catalog.version}}</p><p>{{catalog.scope}}</p>{% for d in builtins %}<details><summary>{{d.title}} · {{d.kind}}</summary><small>{{d.source}}</small><pre>{{d.body}}</pre></details>{% endfor %}</details>
+<p>Spremembe veljajo za naslednje vprašanje, brez posodobitve študentskega programa. Pri starih pogovorih ostanejo shranjeni prvotni odlomki, tudi če gradivo pozneje spremeniš ali izključiš.</p>
+{% endblock %}

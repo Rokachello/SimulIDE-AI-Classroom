@@ -1,0 +1,173 @@
+/***************************************************************************
+ *   Copyright (C) 2020 by Santiago González                               *
+ *                                                                         *
+ ***( see copyright.txt file at root folder )*******************************/
+
+#pragma once
+
+#include<QList>
+
+#include "mcumodule.h"
+#include "e-element.h"
+#include "transmodule.h"
+
+#define mSTOPBITS m_usart->stopBits()
+#define mDATABITS m_usart->dataBits()
+#define mDATAMASK m_usart->dataMask()
+#define mPARITY   m_usart->parity()
+
+enum parity_t{
+    parNONE=0,
+    parEVEN=2,
+    parODD=3,
+};
+
+enum rxError_t{
+    frameError =1<<12,
+    dataOverrun=1<<13,
+    parityError=1<<14
+};
+
+class IoPin;
+class UartTx;
+class UartRx;
+class UartSync;
+class SerialMonitor;
+
+class UsartModule : public TransModule
+{
+        friend class eMcu;
+    public:
+        UsartModule( eMcu* mcu, QString name );
+        ~UsartModule();
+
+        int  baudRate() { return m_baudRate; }
+        void setBaudRate( int br );
+
+        int dataBits() { return m_dataBits; }
+        void setDataBits( int b );
+
+        uint8_t dataMask() { return m_dataMask; }
+
+        int stopBits() { return m_stopBits; }
+        void setStopBits( int sb ) { m_stopBits = sb; }
+
+        parity_t parity() { return m_parity; }
+        void setParity( int par ) { m_parity = (parity_t)par; }
+
+        virtual uint8_t getBit9Tx(){return 0;}
+        virtual void setBit9Rx( uint8_t bit ){;}
+
+        virtual void sendByte( uint8_t data );
+        virtual void bufferEmpty(){;}
+        virtual void frameSent( uint8_t data );
+        virtual void readByte( uint8_t data ){;}
+        virtual void byteReceived( uint8_t data );
+        virtual void setRxFlags( uint16_t frame ){;}
+
+    protected:
+        void setPeriod( uint64_t period );
+        void setSynchronous( bool s );
+
+        bool m_synchronous;
+
+        int m_baudRate;
+
+        UartSync* m_uartSync;
+        UartTx* m_sender;
+        UartRx* m_receiver;
+
+        uint8_t m_mode;
+        uint8_t m_stopBits;
+        parity_t m_parity;
+
+    private:
+        uint8_t m_dataBits;
+        uint8_t m_dataMask;
+};
+
+class UartSync : public eElement
+{
+    friend class UsartModule;
+
+    public:
+        UartSync( UsartModule* usart, /*eMcu* mcu,*/ QString name );
+        ~UartSync();
+
+        virtual void runEvent() override;
+
+        void setClkOffset( uint64_t o ) { m_syncClkOffset = o; }
+        void sendSyncData( uint8_t data );
+        void setPeriod( uint64_t p ) { m_syncPeriod = p; }
+
+    private:
+        int m_currentBit;
+        bool m_clkState;
+
+        uint8_t  m_syncData;
+        uint16_t m_frame;
+        uint64_t m_syncPeriod;
+        uint64_t m_syncClkOffset; // Synchronous clock first edge after data set
+
+        UsartModule* m_usart;
+
+        IoPin* m_syncTxPin;
+        IoPin* m_syncClkPin;
+};
+
+class Interrupt;
+
+class UartTR : public McuModule, public eElement
+{
+        friend class McuCreator;
+
+    public:
+        UartTR( UsartModule* usart, eMcu* mcu, QString name );
+        ~UartTR();
+
+        enum state_t{
+            usartSTOPPED=0,
+            usartIDLE,
+            usartTRANSMIT,
+            usartCLOCK,
+            usartTXEND,
+            usartRECEIVE,
+        };
+
+        virtual void initialize() override;
+
+        virtual void enable( uint8_t ){;}
+        virtual uint8_t getData() { return  m_data; }
+
+        virtual void configureA( uint8_t val ) override;
+
+        bool isEnabled() { return m_enabled; }
+
+        void setPeriod( uint64_t p ) { m_period = p; }
+        bool getParity( uint16_t data );
+
+        state_t state() { return m_state; }
+
+        void setPins( QList<IoPin*> pinList );
+        IoPin* getPin() { return m_ioPin; }
+        IoPin** getPinPointer() { return &m_ioPin; }
+
+        void raiseInt( uint8_t data=0 );
+
+    protected:
+        UsartModule* m_usart;
+        IoPin* m_ioPin;
+        QList<IoPin*> m_pinList;
+
+        uint8_t m_buffer;
+        uint8_t m_data;
+        uint16_t m_frame;
+        uint8_t m_framesize;
+        uint8_t m_currentBit;
+        uint8_t m_bit9;
+        state_t m_state;
+
+        bool m_enabled;
+
+        uint64_t m_period; // Baudrate period
+};

@@ -1,0 +1,5 @@
+# Merjenje: Voltmeter, Ampmeter, Probe, Oscope
+Preverjeno v src/components/meters/{voltmeter,ampmeter,probe,oscope,meter}.cpp. Elementi so v kategoriji Meters. Oscope je ime osciloskopa; Ampmeter je prikazno ime ampermetra, njegov interni tip je Amperimeter.
+Voltmeter meri razliko napetosti med dvema priključkoma. Za izhodno napetost delilnika ga priključi med izhodno vozlišče in Ground, vzporedno z delom vezja. Predznak je odvisen od vrstnega reda priključkov. Ampmeter veži zaporedno v vejo, katere tok meriš; ne vzporedno preko napajalnega vira.
+Probe je sonda vozlišča; za dvopolno razliko uporabi Voltmeter. Oscope je namenjen opazovanju časovnega poteka signala. Za točna imena dodatnih nastavitev uporabi katalog/properties ali namensko dokumentacijo; ne prenašaj ukazov iz drugih simulatorjev.
+Asistent trenutno dobi le en trenutni vzorec napetosti in tokov, ne osciloskopskih krivulj. Iz enega vzorca ne more potrditi frekvence ali utripanja. Ko simulacija ne teče oziroma ni bila inicializirana, null pomeni neznano vrednost, ne 0 V. Za napoved razlikuj izračun od dejanske meritve.

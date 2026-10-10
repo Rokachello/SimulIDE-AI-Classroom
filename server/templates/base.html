@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="sl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SimulIDE · učilnica</title><link rel="stylesheet" href="/static/teacher.css"><script src="/static/teacher-ui.js" defer></script></head>
+<body><header class="app-header"><a class="brand" href="/">SimulIDE <span>učilnica</span></a><small>Učiteljski pregled · V0.12</small></header>
+{% if csrf %}<nav class="main-nav" aria-label="Glavni meni">
+<a href="/" {% if request.path=='/' and request.args.get('view','lessons')=='lessons' %}aria-current="page"{% endif %}>Učne ure</a>
+<a href="/?view=alerts" {% if request.args.get('view')=='alerts' %}aria-current="page"{% endif %}>Pomoč učitelja <span class="badge" id="navAlertCount">{{alerts|selectattr("status","equalto","open")|list|length if alerts is defined else "…"}}</span></a>
+<a href="/?view=students" {% if request.args.get('view')=='students' %}aria-current="page"{% endif %}>Študenti</a>
+<a href="/knowledge" {% if request.path.startswith('/knowledge') %}aria-current="page"{% endif %}>Gradiva</a>
+<a href="/settings/prompt" {% if request.path=='/settings/prompt' %}aria-current="page"{% endif %}>System prompt</a>
+<form action="/logout" method="post"><input type="hidden" name="csrf" value="{{csrf}}"><button class="secondary">Odjava</button></form></nav>{% endif %}
+<main>{% block content %}{% endblock %}</main>{% if csrf %}<script src="/static/alerts.js" defer></script>{% endif %}<footer>SimulIDE učilnica · Pogovori in oddaje so shranjeni po posamezni izvedbi ure.</footer></body></html>

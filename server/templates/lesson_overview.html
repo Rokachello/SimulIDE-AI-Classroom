@@ -1,0 +1,19 @@
+{% extends 'base.html' %}{% block content %}
+{% include 'lesson_nav.html' %}
+{% set notice=request.args.get('notice') %}
+{% if notice=='saved' %}<p class="success" role="status">Priprava ure je shranjena. Spremembe navodil veljajo za naslednje vprašanje študenta.</p>{% endif %}
+{% if notice=='copied' %}<p class="success" role="status">Priprava je kopirana v novo izvedbo. Ura je zaprta, kviz je osnutek. Nastavi datum in preveri gradiva, nato odpri uro. Pogovori in oddaje ostanejo pri prvotni izvedbi.</p>{% elif notice=='opened' %}<p class="success" role="status">Ura je odprta. Študenti lahko pošiljajo vprašanja in oddajo nalogo.</p>{% elif notice=='closed' %}<p class="success" role="status">Ura je zaprta za nova vprašanja in oddaje nalog. Že začete kvize lahko študenti dokončajo.</p>{% endif %}
+<div class="button-row lesson-actions">
+<form action="/lesson/{{lesson.id}}/state" method="post"><input type="hidden" name="csrf" value="{{csrf}}"><button name="active" value="{{0 if lesson.active else 1}}">{{'Zaključi uro' if lesson.active else 'Odpri uro'}}</button></form>
+<a class="button secondary" href="/#edit-{{lesson.id}}">Uredi pripravo</a>
+<form action="/lesson/{{lesson.id}}/copy" method="post"><input type="hidden" name="csrf" value="{{csrf}}"><button class="secondary">Kopiraj za novo izvedbo</button></form>
+</div>
+<div class="overview-grid"><section><h2>Priprava ure</h2><ul class="task-list">
+<li><a href="/#edit-{{lesson.id}}">Cilji in naloga</a><span class="badge">{{'Vneseno' if lesson.objectives.strip() and lesson.instructions.strip() else 'Dopolni pripravo'}}</span></li>
+<li><a href="/knowledge">Gradiva za to uro</a><span>{{documents}} učiteljevih gradiv + katalog</span></li>
+<li><a href="/lesson/{{lesson.id}}/quiz">Končni kviz</a><span class="badge">{{('Objavljen' if quiz.published else 'Osnutek') if quiz else 'Ni pripravljen · neobvezno'}}</span></li>
+</ul><details><summary>Predogled navodil za študenta</summary><h3>Učni cilji</h3><pre>{{lesson.objectives or 'Cilji še niso vneseni.'}}</pre><h3>Naloga</h3><pre>{{lesson.instructions or 'Navodila še niso vnesena.'}}</pre><p>{{'Kviz je na voljo ob izbiri te ure.' if quiz and quiz.published else 'Končni kviz trenutno ni objavljen.'}}</p></details></section>
+<section><h2>Med uro in po njej</h2><p><a href="/lesson/{{lesson.id}}?view=help">Preglej prošnje za pomoč</a></p><p><a href="/lesson/{{lesson.id}}/work">Odpri oddana vezja in rezultate kviza</a></p><p><a href="/lesson/{{lesson.id}}?view=summary">Ustvari ali preberi povzetek ure</a></p><small>Nova izvedba ima svoje pogovore in oddaje. Kopiranje priprave ne prenese rezultatov študentov.</small></section></div>
+<div id="lessonActivity" data-url="/lesson/{{lesson.id}}/activity">{% include 'lesson_activity.html' %}</div>
+<p id="activityStatus" role="status">Pregled dejavnosti se posodablja vsakih 20 sekund.</p>
+{% endblock %}
