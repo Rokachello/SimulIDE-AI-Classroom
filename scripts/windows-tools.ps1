@@ -49,7 +49,8 @@ function Find-MingwBin([string] $ToolsRoot) {
 function Find-TlsBin([string] $ToolsRoot) {
     foreach ($ssl in (Get-ChildItem -LiteralPath $ToolsRoot -Filter libssl-1_1-x64.dll -Recurse -File -ErrorAction SilentlyContinue)) {
         if ($ssl.FullName -match '[\\/]tls-source-build[\\/]') { continue }
-        if (Test-Path (Join-Path $ssl.DirectoryName 'libcrypto-1_1-x64.dll')) { return $ssl.DirectoryName }
+        $crypto = Join-Path $ssl.DirectoryName 'libcrypto-1_1-x64.dll'
+        if ((Test-Path $crypto) -and (Test-X64Library $ssl.FullName) -and (Test-X64Library $crypto)) { return $ssl.DirectoryName }
     }
     return $null
 }

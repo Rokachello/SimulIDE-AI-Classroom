@@ -18,7 +18,7 @@ try {
         if ($opened -and $opened.MainWindowTitle.Contains('SimulIDE AI 0.12') -and $opened.MainWindowTitle.Contains($revision)) { break }
         Start-Sleep -Milliseconds 500
     }
-    if (-not $opened -or -not $opened.MainWindowTitle.Contains($revision)) { throw 'Paket ni odprl glavnega okna s trenutno Git revizijo.' }
+    if (-not $opened -or -not $opened.MainWindowTitle.Contains('SimulIDE AI 0.12') -or -not $opened.MainWindowTitle.Contains($revision)) { throw 'Paket ni odprl glavnega okna z razlicico AI 0.12 in trenutno Git revizijo.' }
     Write-Host "::notice::PASS: studentski ZAZENI.cmd je odprl Windows SimulIDE AI 0.12 ($revision)."
 } catch {
     $message = $_.Exception.Message.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')

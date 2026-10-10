@@ -25,7 +25,9 @@ jobs:
           $before = (Get-Item $binary).LastWriteTimeUtc
           ./scripts/zazeni.ps1 -BuildOnly
           if ((Get-Item $binary).LastWriteTimeUtc -ne $before) { throw 'Nespremenjena koda se je ponovno gradila.' }
-          Add-Content src/main.cpp "`n// CI rebuild probe"
+          $sourceTime = (Get-Item src/main.cpp).LastWriteTimeUtc
+          Add-Content src/main.cpp "`n// CI rebuild probe with preserved source timestamp"
+          (Get-Item src/main.cpp).LastWriteTimeUtc = $sourceTime
           ./scripts/zazeni.ps1 -BuildOnly
           if ((Get-Item $binary).LastWriteTimeUtc -le $before) { throw 'Spremenjena koda ni bila ponovno prevedena.' }
           # Undo only this CI probe, then package the original checked-out revision.

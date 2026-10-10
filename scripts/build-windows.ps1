@@ -16,6 +16,10 @@ New-Item -ItemType Directory -Force $buildDir | Out-Null
 Push-Location $buildDir
 try {
     Invoke-Checked (Join-Path $QtBin 'qmake.exe') @("$srcRoot/AI.pro") 'Priprava gradnje Qt'
+    # The launcher compares contents, while make only compares timestamps. A ZIP
+    # extraction or editor can preserve mtimes: discard objects whenever the
+    # launcher requests a build so those changed sources cannot stay stale.
+    Invoke-Checked (Join-Path $MingwBin 'mingw32-make.exe') @('clean') 'Ciscenje gradilnih objektov'
     Invoke-Checked (Join-Path $MingwBin 'mingw32-make.exe') @('-j4') 'Gradnja SimulIDE'
 } finally { Pop-Location }
 $outputDir = "$srcRoot/build_AI/executables/SimulIDE_2.0.0-"

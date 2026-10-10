@@ -102,6 +102,15 @@ try {
     foreach ($file in @('vcruntime140.dll', 'vcruntime140_1.dll')) { [IO.File]::WriteAllBytes((Join-Path $crtFixture $file), $bytes) }
     Assert-True ((Find-CrtBin $crtFixture) -eq $crtFixture) 'x64 CRT pair is reused from the existing cache'
 
+    $tlsFixture = Join-Path $temp 'tls'
+    New-Item -ItemType Directory -Force $tlsFixture | Out-Null
+    $bytes[0x84] = 0x4C; $bytes[0x85] = 0x01
+    foreach ($file in @('libssl-1_1-x64.dll', 'libcrypto-1_1-x64.dll')) { [IO.File]::WriteAllBytes((Join-Path $tlsFixture $file), $bytes) }
+    Assert-True (-not (Find-TlsBin $tlsFixture)) '32-bit TLS cache is rejected even if its filenames say x64'
+    $bytes[0x84] = 0x64; $bytes[0x85] = 0x86
+    foreach ($file in @('libssl-1_1-x64.dll', 'libcrypto-1_1-x64.dll')) { [IO.File]::WriteAllBytes((Join-Path $tlsFixture $file), $bytes) }
+    Assert-True ((Find-TlsBin $tlsFixture) -eq $tlsFixture) 'x64 TLS pair is reused from the existing cache'
+
     $local = Join-Path $temp 'local'
     $server = Join-Path $temp 'server'
     $legacy = Join-Path $local 'SimulIDE-AI-V0.2/classroom-data'
