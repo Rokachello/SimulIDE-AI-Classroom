@@ -22,9 +22,9 @@ __pycache__/
 classroom-data/
 /data/
 /server/data/
-*.sqlite
-*.sqlite3
+*.sqlite*
 *.db
+*.db-*
 .env
 .env.*
 !.env.example

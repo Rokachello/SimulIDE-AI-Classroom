@@ -126,6 +126,15 @@ try {
     Set-Content "$server/data/classroom.sqlite3" 'second database'
     Assert-Throws { Get-ClassroomDataPath $server $local '' } 'ambiguous databases stop rather than create or replace data'
     Assert-True ((Get-ClassroomDataPath $server $local "$server/data") -eq [IO.Path]::GetFullPath("$server/data")) 'explicit data selection is preserved'
+    $missingData = Join-Path $temp 'wrong data setting'
+    Assert-Throws { Get-ClassroomDataPath $server $local $missingData } 'a wrong explicit path cannot hide existing classroom databases'
+    Assert-True (-not (Test-Path $missingData)) 'a rejected data setting does not create an empty replacement folder'
+    $newServer = Join-Path $temp 'new server'
+    $newLocal = Join-Path $temp 'new local'
+    Assert-True ((Get-ClassroomDataPath $newServer $newLocal $missingData) -eq [IO.Path]::GetFullPath($missingData)) 'first install may explicitly choose an empty data location when no old database exists'
+    New-Item -ItemType Directory -Force $missingData | Out-Null
+    Set-Content (Join-Path $missingData 'private-material.txt') 'preserved'
+    Assert-Throws { Get-ClassroomDataPath $newServer $newLocal $missingData } 'existing explicit private data without its database stops initialization'
     Assert-True ((Get-Content "$legacy/classroom.sqlite3") -eq 'existing database') 'data selection leaves the original database unchanged'
 
     # Exercise ff-only with actual disposable Git repositories, including divergence.

@@ -34,7 +34,8 @@ vpisovati ročno.
 - **Učiteljski strežnik:** dvoklikni `ZAZENI-STREZNIK.cmd` v korenu. Strežnik se naloži
   iz `server/` tega repozitorija in ponovno uporabi obstoječo podatkovno mapo
   `%LOCALAPPDATA%\SimulIDE-AI-V0.2\classroom-data`. Če je nastavljen `SIMULIDE_DATA`,
-  ohrani to izbiro; prepozna tudi obstoječo bazo v `server/data/`. Ob več bazah se
+  ohrani to izbiro; prepozna tudi obstoječo bazo v `server/data/`. Če nastavitev kaže
+  na mapo brez baze, uporabljena baza pa obstaja drugje, se ustavi. Ob več bazah se
   ustavi, da ne izbere napačne. Računi, pogovori, gradiva in RAG nastavitve ostanejo
   v isti mapi. Nov učiteljski račun zahteva le, če učitelja še ni. API ključ vnesi
   v strežniškem oknu; ostane v pomnilniku strežnika. Na študentski računalnik ga ne

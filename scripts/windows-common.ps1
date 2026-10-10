@@ -109,11 +109,21 @@ function Invoke-DesktopBuild([string] $Root, $Tools, [switch] $Force) {
 }
 
 function Get-ClassroomDataPath([string] $ServerRoot, [string] $LocalAppData, [string] $ExplicitPath) {
-    if ($ExplicitPath) { return [IO.Path]::GetFullPath($ExplicitPath) }
     $legacy = Join-Path $LocalAppData 'SimulIDE-AI-V0.2/classroom-data'
     $candidates = @(@($legacy, (Join-Path $ServerRoot 'data')) | Where-Object {
         Test-Path -LiteralPath (Join-Path $_ 'classroom.sqlite3')
     })
+    if ($ExplicitPath) {
+        $selected = [IO.Path]::GetFullPath($ExplicitPath)
+        if (Test-Path -LiteralPath (Join-Path $selected 'classroom.sqlite3')) { return $selected }
+        if ($candidates.Count -gt 0) {
+            throw "SIMULIDE_DATA kaze na $selected brez baze, obstojeca baza pa je v: $($candidates -join ', '). Preveri nastavitev; nove prazne baze nisem ustvaril."
+        }
+        if ((Test-Path -LiteralPath $selected) -and (Get-ChildItem -LiteralPath $selected -Force | Select-Object -First 1)) {
+            throw "SIMULIDE_DATA kaze na $selected s podatki, vendar manjka classroom.sqlite3. Preveri uporabljeno mapo ali varnostno kopijo."
+        }
+        return $selected
+    }
     if ($candidates.Count -gt 1) {
         throw "Najdenih je vec baz: $($candidates -join ', '). Nastavi SIMULIDE_DATA na uporabljeno mapo; nobene baze nisem zamenjal."
     }

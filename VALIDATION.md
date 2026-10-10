@@ -3,7 +3,8 @@
 ## Windows zaganjalniki in posodobitev izvorne kode
 
 - V Linux okolju s PowerShell 7.5.4 in v Windows CI s PowerShell 5.1 je bilo
-  uspešno izvedenih **39 kontrolnih preverjanj**:
+  uspešno izvedenih **39 kontrolnih preverjanj**; dodani so še štirje pregledi
+  napačne izrecne izbire podatkovne mape (njihovo Windows preverjanje še poteka):
   prva gradnja, hiter zagon brez sprememb, sprememba vsebine ob istem času datoteke,
   dodajanje/odstranjevanje virov, manjkajoča izvršljiva datoteka ali vtičnik,
   napaka prevajalnika/TLS brez veljavne oznake pripravljenosti, pravilna arhitektura
