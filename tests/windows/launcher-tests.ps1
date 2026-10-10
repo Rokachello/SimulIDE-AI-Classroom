@@ -84,6 +84,12 @@ try {
     Assert-Throws { Invoke-Checked 'nonexistent-simulide-command' @() 'Testni ukaz' } 'missing external command fails instead of inheriting a stale exit code'
 
     . (Join-Path $repo 'scripts/windows-tools.ps1')
+    $cachedArchive = Join-Path $temp 'cached-archive.zip'
+    Set-Content $cachedArchive 'verified fixture'
+    $cachedHash = (Get-FileHash -LiteralPath $cachedArchive -Algorithm SHA256).Hash
+    Get-VerifiedArchive 'https://example.invalid/never-requested.zip' $cachedArchive $cachedHash
+    Assert-True (Test-Path $cachedArchive) 'verified cached downloads are reused without a network request'
+    Assert-Throws { Get-VerifiedArchive 'https://example.invalid/never-requested.zip' $cachedArchive ('0' * 64) } 'a mismatched archive hash stops setup before extraction'
     $crtFixture = Join-Path $temp 'crt'
     New-Item -ItemType Directory -Force $crtFixture | Out-Null
     $bytes = New-Object byte[] 256

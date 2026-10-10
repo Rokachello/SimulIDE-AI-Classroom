@@ -79,7 +79,7 @@ function Build-LegacyTls([string] $ToolsRoot, [string] $MingwBin, [string] $Pyth
     }
     $archive = Join-Path $work 'openssl-1.1.1w.tar.gz'
     Get-VerifiedArchive 'https://github.com/openssl/openssl/releases/download/OpenSSL_1_1_1w/openssl-1.1.1w.tar.gz' $archive 'cf3098950cb4d853ad95c0841f1f9c6d3dc102dccfcacd521d93925208b76ac8'
-    Invoke-Checked $Python @('-c', 'import tarfile,sys; tarfile.open(sys.argv[1]).extractall(sys.argv[2],filter="data")', $archive, $work) 'Razsirjanje preverjenih TLS virov'
+    Invoke-Checked $Python @('-c', "import tarfile,sys; tarfile.open(sys.argv[1]).extractall(sys.argv[2],filter='data')", $archive, $work) 'Razsirjanje preverjenih TLS virov'
     $source = Join-Path $work 'openssl-1.1.1w'
     $previousPath = $env:PATH
     try {
@@ -139,6 +139,7 @@ function Get-WindowsTools([string] $Root) {
                 $mingw = Find-MingwBin $toolsRoot
             }
             if (-not $tls) {
+                if (-not $qt -or -not $mingw) { throw 'Qt ali MinGW ni pripravljen za gradnjo TLS. Preveri prenose v setup.log.' }
                 $null = Build-LegacyTls $toolsRoot $mingw $python
                 $tls = Find-TlsBin $toolsRoot
             }
