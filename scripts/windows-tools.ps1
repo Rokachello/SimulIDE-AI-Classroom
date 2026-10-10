@@ -97,7 +97,12 @@ function Get-WindowsTools([string] $Root) {
                 $mingw = Find-MingwBin $toolsRoot
             }
             if (-not $tls) {
-                Invoke-Checked $python @('-m', 'aqt', 'install-tool', 'windows', 'desktop', 'tools_openssl_x64', '-O', $toolsRoot) 'Prenos OpenSSL iz Qt'
+                try { Invoke-Checked $python @('-m', 'aqt', 'install-tool', 'windows', 'desktop', 'tools_openssl_x64', '-O', $toolsRoot) 'Prenos OpenSSL iz Qt' }
+                catch {
+                    $failure = $_.Exception.Message
+                    $available = Invoke-Probe $python @('-m', 'aqt', 'list-tool', 'windows', 'desktop')
+                    throw "$failure`nUradni seznam trenutno razpolozljivih Qt orodij:`n$($available.Output)"
+                }
                 $tls = Find-TlsBin $toolsRoot
             }
         }

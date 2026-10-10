@@ -20,6 +20,7 @@ venv/
 __pycache__/
 *.py[cod]
 classroom-data/
+/data/
 /server/data/
 *.sqlite
 *.sqlite3
