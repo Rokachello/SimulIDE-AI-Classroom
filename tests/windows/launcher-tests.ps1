@@ -36,7 +36,7 @@ try {
         Set-Content "$Root/build_AI/executables/SimulIDE_2.0.0-/simulide.exe" 'fixture'
         $out = "$Root/build_AI/executables/SimulIDE_2.0.0-"
         New-Item -ItemType Directory -Force "$out/plugins/platforms" | Out-Null
-        foreach ($file in @('Qt5Core.dll', 'Qt5Widgets.dll', 'Qt5Network.dll', 'libstdc++-6.dll', 'libgcc_s_seh-1.dll', 'libwinpthread-1.dll', 'plugins/platforms/qwindows.dll', 'libssl-1_1-x64.dll', 'libcrypto-1_1-x64.dll', 'qt.conf')) {
+        foreach ($file in @('Qt5Core.dll', 'Qt5Widgets.dll', 'Qt5Network.dll', 'libstdc++-6.dll', 'libgcc_s_seh-1.dll', 'libwinpthread-1.dll', 'plugins/platforms/qwindows.dll', 'libssl-1_1-x64.dll', 'libcrypto-1_1-x64.dll', 'vcruntime140.dll', 'vcruntime140_1.dll', 'qt.conf')) {
             Set-Content (Join-Path $out $file) 'fixture'
         }
     }
@@ -74,10 +74,27 @@ try {
     Remove-Item "$source/build_AI/executables/SimulIDE_2.0.0-/plugins/platforms/qwindows.dll"
     $null = Invoke-DesktopBuild $source $tools
     Assert-True ($script:builds -eq 8) 'missing Qt platform plugin forces deployment repair'
+    New-Item -ItemType Directory -Force "$source/resources/qm" | Out-Null
+    Set-Content "$source/resources/qm/generated.qm" 'generated'
+    $null = Invoke-DesktopBuild $source $tools
+    Assert-True ($script:builds -eq 8) 'generated translations do not invalidate the no-change launch'
     # Check the real native command exit-status handling (not the compiler mock).
     $shell = (Get-Process -Id $PID).Path
     Assert-Throws { Invoke-Checked $shell @('-NoProfile', '-Command', 'exit 7') 'Testni ukaz' } 'nonzero native exit is propagated'
     Assert-Throws { Invoke-Checked 'nonexistent-simulide-command' @() 'Testni ukaz' } 'missing external command fails instead of inheriting a stale exit code'
+
+    . (Join-Path $repo 'scripts/windows-tools.ps1')
+    $crtFixture = Join-Path $temp 'crt'
+    New-Item -ItemType Directory -Force $crtFixture | Out-Null
+    $bytes = New-Object byte[] 256
+    $bytes[0] = 0x4D; $bytes[1] = 0x5A; $bytes[0x3C] = 0x80
+    $bytes[0x80] = 0x50; $bytes[0x81] = 0x45
+    $bytes[0x84] = 0x4C; $bytes[0x85] = 0x01
+    foreach ($file in @('vcruntime140.dll', 'vcruntime140_1.dll')) { [IO.File]::WriteAllBytes((Join-Path $crtFixture $file), $bytes) }
+    Assert-True (-not (Find-CrtBin $crtFixture)) '32-bit CRT cache is not reused by the x64 desktop'
+    $bytes[0x84] = 0x64; $bytes[0x85] = 0x86
+    foreach ($file in @('vcruntime140.dll', 'vcruntime140_1.dll')) { [IO.File]::WriteAllBytes((Join-Path $crtFixture $file), $bytes) }
+    Assert-True ((Find-CrtBin $crtFixture) -eq $crtFixture) 'x64 CRT pair is reused from the existing cache'
 
     $local = Join-Path $temp 'local'
     $server = Join-Path $temp 'server'
@@ -129,6 +146,9 @@ try {
     Invoke-FixtureGit @('-C', $checkout, 'remote', 'set-url', 'origin', (Join-Path $temp 'nonexistent.git'))
     Assert-Throws { Invoke-RepositoryUpdate $checkout } 'unavailable remote stops update'
     Assert-Throws { Invoke-RepositoryUpdate $source } 'source ZIP without Git metadata cannot be updated'
+    $nestedSource = Join-Path $author 'nested-source-zip'
+    New-Item -ItemType Directory -Force $nestedSource | Out-Null
+    Assert-True ((Get-SourceRevision $nestedSource) -eq 'unknown') 'source ZIP inside another repository does not inherit its Git commit'
 
     # Packaging must select public desktop files despite private data in the fixture.
     $built = "$source/build_AI/executables/SimulIDE_2.0.0-"

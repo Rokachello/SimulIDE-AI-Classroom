@@ -1,9 +1,36 @@
 # Official Python/PyPI/Qt sources. TLS and archive verification stay enabled.
+function Test-X64Library([string] $Path) {
+    $reader = $null
+    try {
+        $reader = New-Object IO.BinaryReader ([IO.File]::OpenRead($Path))
+        if ($reader.ReadUInt16() -ne 0x5A4D) { return $false }
+        $null = $reader.BaseStream.Seek(0x3C, [IO.SeekOrigin]::Begin)
+        $offset = $reader.ReadInt32()
+        $null = $reader.BaseStream.Seek($offset, [IO.SeekOrigin]::Begin)
+        return $reader.ReadUInt32() -eq 0x4550 -and $reader.ReadUInt16() -eq 0x8664
+    } catch { return $false }
+    finally { if ($null -ne $reader) { $reader.Dispose() } }
+}
+
 function Find-QtBin([string] $ToolsRoot) {
     foreach ($qmake in (Get-ChildItem -LiteralPath $ToolsRoot -Filter qmake.exe -Recurse -File -ErrorAction SilentlyContinue)) {
         if ($qmake.FullName -notmatch 'mingw81_64[\\/]bin[\\/]qmake.exe$') { continue }
         $probe = Invoke-Probe $qmake.FullName @('-query', 'QT_VERSION')
-        if ($probe.Code -eq 0 -and $probe.Output -eq '5.15.2' -and (Test-Path (Join-Path $qmake.DirectoryName 'lrelease.exe'))) { return $qmake.DirectoryName }
+        if ($probe.Code -eq 0 -and $probe.Output -eq '5.15.2') {
+            $complete = $true
+            foreach ($file in @('lrelease.exe', 'Qt5Core.dll', 'Qt5Gui.dll', 'Qt5Widgets.dll', 'Qt5Network.dll', 'Qt5Svg.dll', 'Qt5Xml.dll', 'Qt5Concurrent.dll', 'Qt5SerialPort.dll', 'Qt5Multimedia.dll')) {
+                if (-not (Test-Path (Join-Path $qmake.DirectoryName $file))) { $complete = $false }
+            }
+            if ($complete) { return $qmake.DirectoryName }
+        }
+    }
+    return $null
+}
+
+function Find-CrtBin([string] $ToolsRoot) {
+    foreach ($crt in (Get-ChildItem -LiteralPath $ToolsRoot -Filter vcruntime140.dll -Recurse -File -ErrorAction SilentlyContinue)) {
+        $other = Join-Path $crt.DirectoryName 'vcruntime140_1.dll'
+        if ((Test-Path $other) -and (Test-X64Library $crt.FullName) -and (Test-X64Library $other)) { return $crt.DirectoryName }
     }
     return $null
 }
@@ -11,7 +38,10 @@ function Find-QtBin([string] $ToolsRoot) {
 function Find-MingwBin([string] $ToolsRoot) {
     foreach ($gcc in (Get-ChildItem -LiteralPath $ToolsRoot -Filter g++.exe -Recurse -File -ErrorAction SilentlyContinue)) {
         $probe = Invoke-Probe $gcc.FullName @('-dumpfullversion')
-        if ($probe.Code -eq 0 -and $probe.Output -eq '8.1.0' -and (Test-Path (Join-Path $gcc.DirectoryName 'mingw32-make.exe'))) { return $gcc.DirectoryName }
+        if ($probe.Code -eq 0 -and $probe.Output -eq '8.1.0' -and (Test-Path (Join-Path $gcc.DirectoryName 'mingw32-make.exe'))) {
+            $arch = Invoke-Probe $gcc.FullName @('-dumpmachine')
+            if ($arch.Code -eq 0 -and $arch.Output -eq 'x86_64-w64-mingw32') { return $gcc.DirectoryName }
+        }
     }
     return $null
 }
@@ -32,7 +62,8 @@ function Get-WindowsTools([string] $Root) {
         $qt = Find-QtBin $toolsRoot
         $mingw = Find-MingwBin $toolsRoot
         $tls = Find-TlsBin $toolsRoot
-        if (-not $qt -or -not $mingw -or -not $tls) {
+        $crt = Find-CrtBin $toolsRoot
+        if (-not $qt -or -not $mingw -or -not $tls -or -not $crt) {
             $runtime = Join-Path $toolsRoot 'bootstrap-python312'
             $python = Join-Path $runtime 'python.exe'
             New-Item -ItemType Directory -Force $runtime | Out-Null
@@ -43,6 +74,7 @@ function Get-WindowsTools([string] $Root) {
                 if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne '4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c3') { throw 'Prenos Python ni prestal preverjanja SHA256.' }
                 Expand-Archive -LiteralPath $zip -DestinationPath $runtime -Force
             }
+            $crt = Find-CrtBin $toolsRoot
             $wheel = Join-Path $Root 'server/bootstrap/pip-24.2-py3-none-any.whl'
             if (-not (Test-Path -LiteralPath $wheel)) { throw 'Manjka server/bootstrap/pip wheel. Razsiri celotno izvorno kopijo.' }
             $pth = "python312.zip`r`n.`r`nLib/site-packages`r`n$wheel`r`nimport site`r`n"
@@ -69,8 +101,8 @@ function Get-WindowsTools([string] $Root) {
                 $tls = Find-TlsBin $toolsRoot
             }
         }
-        if (-not $qt -or -not $mingw -or -not $tls) { throw 'Orodja so nepopolna: potrebujem Qt 5.15.2, MinGW 8.1 in obe OpenSSL 1.1 x64 knjiznici.' }
+        if (-not $qt -or -not $mingw -or -not $tls -or -not $crt) { throw 'Orodja so nepopolna: potrebujem Qt 5.15.2, MinGW 8.1, OpenSSL 1.1 x64 in Visual C++ runtime knjiznici.' }
         Write-SetupLog "Uporabljam Qt: $qt; MinGW: $mingw; TLS: $tls"
-        return [PSCustomObject]@{ QtBin = $qt; MingwBin = $mingw; TlsBin = $tls }
+        return [PSCustomObject]@{ QtBin = $qt; MingwBin = $mingw; TlsBin = $tls; CrtBin = $crt }
     } finally { $lock.Dispose() }
 }

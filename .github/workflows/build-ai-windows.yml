@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Test launch/update/data selection and package isolation
-        shell: pwsh
+        shell: powershell
         run: ./tests/windows/launcher-tests.ps1
       - name: Build using the same bootstrap as ZAZENI.cmd
         shell: powershell

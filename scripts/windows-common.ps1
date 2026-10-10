@@ -32,6 +32,8 @@ function Invoke-Probe([string] $Program, [string[]] $Arguments) {
 
 function Get-SourceRevision([string] $Root) {
     if (Get-Command git -ErrorAction SilentlyContinue) {
+        $location = Invoke-Probe 'git' @('-C', $Root, 'rev-parse', '--show-toplevel')
+        if ($location.Code -ne 0 -or [IO.Path]::GetFullPath($location.Output) -ne [IO.Path]::GetFullPath($Root)) { return 'unknown' }
         $probe = Invoke-Probe 'git' @('-C', $Root, 'rev-parse', '--short=12', 'HEAD')
         $revision = $probe.Output
         if ($probe.Code -eq 0 -and $revision -match '^[0-9a-f]{7,40}$') {
@@ -65,7 +67,7 @@ function Get-DesktopFingerprint([string] $Root, [string] $Revision, [string] $To
 
 function Invoke-DesktopCompile([string] $Root, $Tools) {
     $env:PATH = "$($Tools.QtBin);$($Tools.MingwBin);$env:PATH"
-    & (Join-Path $Root 'scripts/build-windows.ps1') -QtBin $Tools.QtBin -MingwBin $Tools.MingwBin -TlsBin $Tools.TlsBin
+    & (Join-Path $Root 'scripts/build-windows.ps1') -QtBin $Tools.QtBin -MingwBin $Tools.MingwBin -TlsBin $Tools.TlsBin -CrtBin $Tools.CrtBin
 }
 
 function Test-DesktopRuntime([string] $Binary) {
@@ -76,11 +78,11 @@ function Invoke-DesktopBuild([string] $Root, $Tools, [switch] $Force) {
     $binary = Join-Path $Root 'build_AI/executables/SimulIDE_2.0.0-/simulide.exe'
     $marker = Join-Path $Root 'build_AI/source-ready.sha256'
     $revision = Get-SourceRevision $Root
-    $fingerprint = Get-DesktopFingerprint $Root $revision "$($Tools.QtBin)|$($Tools.MingwBin)|$($Tools.TlsBin)|Qt5.15.2-Mingw8.1"
+    $fingerprint = Get-DesktopFingerprint $Root $revision "$($Tools.QtBin)|$($Tools.MingwBin)|$($Tools.TlsBin)|$($Tools.CrtBin)|Qt5.15.2-Mingw8.1"
     $ready = (Test-Path -LiteralPath $marker) -and (Test-Path -LiteralPath $binary)
     if ($ready) { $ready = (Get-Content -LiteralPath $marker -Raw).Trim() -eq $fingerprint }
     # Restore an incomplete deployment instead of skipping it because sources are unchanged.
-    foreach ($file in @('Qt5Core.dll', 'Qt5Widgets.dll', 'Qt5Network.dll', 'libstdc++-6.dll', 'libgcc_s_seh-1.dll', 'libwinpthread-1.dll', 'plugins/platforms/qwindows.dll', 'libssl-1_1-x64.dll', 'libcrypto-1_1-x64.dll', 'qt.conf')) {
+    foreach ($file in @('Qt5Core.dll', 'Qt5Widgets.dll', 'Qt5Network.dll', 'libstdc++-6.dll', 'libgcc_s_seh-1.dll', 'libwinpthread-1.dll', 'plugins/platforms/qwindows.dll', 'libssl-1_1-x64.dll', 'libcrypto-1_1-x64.dll', 'vcruntime140.dll', 'vcruntime140_1.dll', 'qt.conf')) {
         if (-not (Test-Path -LiteralPath (Join-Path (Split-Path $binary -Parent) $file))) { $ready = $false }
     }
     $env:SIMULIDE_GIT_COMMIT = $revision

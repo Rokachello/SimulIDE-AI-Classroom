@@ -19,3 +19,9 @@ Bootstrap Python and aqtinstall are development tools only and are not included
 in the compiled student ZIP. Python is downloaded from python.org and verified
 against its pinned SHA256; aqtinstall is installed from PyPI over verified TLS.
 Qt/tool archives are checked against SHA256 served by the official Qt repository.
+
+The x64 Visual C++ runtime DLLs are reused from the tool cache or supplied by the
+official Python 3.12.10 embedded x64 archive. They are deployed alongside OpenSSL,
+so a separate system-wide runtime install is not required. Python's accompanying
+license is copied when available.
+Visual Studio redistributable terms: https://visualstudio.microsoft.com/license-terms/

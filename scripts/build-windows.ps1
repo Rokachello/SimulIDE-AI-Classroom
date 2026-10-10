@@ -1,4 +1,4 @@
-﻿param([string] $QtBin, [string] $MingwBin, [string] $TlsBin)
+﻿param([string] $QtBin, [string] $MingwBin, [string] $TlsBin, [string] $CrtBin)
 $ErrorActionPreference = "Stop"
 $srcRoot = Split-Path $PSScriptRoot -Parent
 . (Join-Path $PSScriptRoot 'windows-common.ps1')
@@ -6,6 +6,7 @@ if (-not $script:SetupLog) { Initialize-SetupLog $srcRoot }
 if (-not $QtBin) { $QtBin = Split-Path (Get-Command qmake.exe -ErrorAction Stop).Source -Parent }
 if (-not $MingwBin) { $MingwBin = Split-Path (Get-Command mingw32-make.exe -ErrorAction Stop).Source -Parent }
 if (-not $TlsBin) { throw 'Za gradnjo podaj mapo OpenSSL knjiznic ali uporabi ZAZENI.cmd.' }
+if (-not $CrtBin) { throw 'Za gradnjo podaj mapo Visual C++ runtime knjiznic ali uporabi ZAZENI.cmd.' }
 $env:PATH = "$QtBin;$MingwBin;$env:PATH"
 Get-ChildItem "$srcRoot/resources/translations" -Filter *.ts -Recurse | ForEach-Object {
     Invoke-Checked (Join-Path $QtBin 'lrelease.exe') @($_.FullName, "-qm", "$srcRoot/resources/qm/$($_.BaseName).qm") 'Priprava prevodov'
@@ -40,12 +41,19 @@ Get-ChildItem -LiteralPath $mingwBin -Filter "*.dll" -File | ForEach-Object {
 Get-ChildItem -LiteralPath $TlsBin -Filter '*.dll' -File | ForEach-Object {
     Copy-Item -LiteralPath $_.FullName -Destination $outputDir -Force
 }
+foreach ($file in @('vcruntime140.dll', 'vcruntime140_1.dll')) {
+    Copy-Item -LiteralPath (Join-Path $CrtBin $file) -Destination $outputDir -Force
+}
 Get-ChildItem -LiteralPath $pluginSource | ForEach-Object {
     Copy-Item -LiteralPath $_.FullName -Destination "$outputDir/plugins" -Recurse -Force
 }
 Set-Content -LiteralPath "$outputDir/qt.conf" -Encoding ASCII -Value "[Paths]`r`nPrefix=.`r`nPlugins=plugins"
-foreach ($file in @("Qt5Core.dll", "Qt5Gui.dll", "Qt5Widgets.dll", "Qt5Network.dll", "Qt5Multimedia.dll", "Qt5SerialPort.dll", "Qt5Svg.dll", "Qt5Xml.dll", "libstdc++-6.dll", "libgcc_s_seh-1.dll", "libwinpthread-1.dll", "plugins/platforms/qwindows.dll", "libssl-1_1-x64.dll", "libcrypto-1_1-x64.dll")) {
+foreach ($file in @("Qt5Core.dll", "Qt5Gui.dll", "Qt5Widgets.dll", "Qt5Network.dll", "Qt5Multimedia.dll", "Qt5SerialPort.dll", "Qt5Svg.dll", "Qt5Xml.dll", "libstdc++-6.dll", "libgcc_s_seh-1.dll", "libwinpthread-1.dll", "plugins/platforms/qwindows.dll", "libssl-1_1-x64.dll", "libcrypto-1_1-x64.dll", "vcruntime140.dll", "vcruntime140_1.dll")) {
     if (!(Test-Path -LiteralPath (Join-Path $outputDir $file))) { throw "Manjka datoteka za zagon: $file" }
+}
+if (Test-Path (Join-Path $CrtBin 'LICENSE.txt')) {
+    New-Item -ItemType Directory -Force (Join-Path $outputDir 'licenses/Python-runtime') | Out-Null
+    Copy-Item -LiteralPath (Join-Path $CrtBin 'LICENSE.txt') -Destination (Join-Path $outputDir 'licenses/Python-runtime') -Force
 }
 # Preserve the notices shipped by the actual Qt, GCC/MinGW and OpenSSL archives.
 foreach ($component in @(@('Qt', $qtPrefix), @('MinGW', (Split-Path $mingwBin -Parent)), @('OpenSSL', (Split-Path $TlsBin -Parent)))) {

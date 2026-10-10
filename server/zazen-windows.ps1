@@ -34,8 +34,7 @@ try {
     $marker = Join-Path $runtime 'packages-ready.txt'
     if (-not (Test-Path -LiteralPath $marker) -or (Get-Content -LiteralPath $marker -Raw).Trim() -ne $hash) {
         Write-Host 'Pripravljam knjiznice streznika ...'
-        & $python -m pip install --no-user --no-cache-dir --upgrade --target (Join-Path $runtime 'Lib/site-packages') -r $requirements
-        if ($LASTEXITCODE -ne 0) { throw 'Namestitev knjiznic ni uspela.' }
+        Invoke-Checked $python @('-m', 'pip', 'install', '--no-user', '--no-cache-dir', '--upgrade', '--target', (Join-Path $runtime 'Lib/site-packages'), '-r', $requirements) 'Namestitev knjiznic streznika'
         Set-Content -LiteralPath $marker -Value $hash -Encoding ASCII
     }
     $env:SIMULIDE_DATA = Get-ClassroomDataPath $PSScriptRoot $env:LOCALAPPDATA $env:SIMULIDE_DATA
