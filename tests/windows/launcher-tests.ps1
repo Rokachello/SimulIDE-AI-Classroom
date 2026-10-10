@@ -16,8 +16,8 @@ function Assert-Throws([scriptblock] $Action, [string] $Message) {
     Assert-True $failed $Message
 }
 function Invoke-FixtureGit([string[]] $Arguments) {
-    & git @Arguments 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Fixture git failed: $($Arguments -join ' ')" }
+    # Empty-repository clone warnings are stderr; PS 5.1 must not treat them as failure.
+    Invoke-Checked 'git' $Arguments 'Priprava testnega Git repozitorija'
 }
 try {
     $source = Join-Path $temp 'source with spaces'
@@ -167,10 +167,15 @@ try {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip = [IO.Compression.ZipFile]::OpenRead("$temp/package/SimulIDE-AI-Windows.zip")
     try {
-        $entries = @($zip.Entries.FullName)
+        $entries = @($zip.Entries.FullName | ForEach-Object { $_.Replace('\', '/') })
         Assert-True ($entries -contains 'ZAZENI.cmd' -and $entries -contains 'bin/simulide.exe') 'portable package includes the launcher and desktop binary'
         Assert-True (-not ($entries | Where-Object { $_ -match 'server|\.sqlite|\.env|classroom-data|STREZNIK|POSODOBI' })) 'student ZIP excludes server, credentials, databases and update launcher'
         Assert-True ($entries -contains 'LICENSE-GPL-3.0.txt' -and $entries -contains 'LICENSE-AGPL-3.0.txt') 'portable package retains project license notices'
     } finally { $zip.Dispose() }
     Write-Host "PASS: $script:checks checks; Windows runtime/download/build still requires the Windows CI job."
+} catch {
+    # Publish the actual failure as a CI annotation, as well as preserving the console error.
+    $message = $_.Exception.Message.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+    Write-Host "::error::$message"
+    throw
 } finally { Remove-Item -LiteralPath $temp -Recurse -Force }
