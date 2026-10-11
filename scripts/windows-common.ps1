@@ -76,7 +76,9 @@ function Invoke-DesktopCompile([string] $Root, $Tools) {
 }
 
 function Test-DesktopRuntime([string] $Binary) {
+    Write-SetupLog "TLS pregled: zacenjam $Binary -ai-check-tls (lokalno nalaganje knjiznic; brez povezave s streznikom)."
     Invoke-Checked $Binary @('-ai-check-tls') 'Preverjanje TLS knjiznic'
+    Write-SetupLog 'TLS pregled: koncano, izhodna koda 0.'
 }
 
 function Invoke-DesktopBuild([string] $Root, $Tools, [switch] $Force) {

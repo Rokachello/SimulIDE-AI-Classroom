@@ -8,13 +8,36 @@ on:
 permissions:
   contents: read
 jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Test passive inventory, source export and checksums
+        shell: pwsh
+        run: ./tests/windows/release-tests.ps1
+      - name: Export source ZIP for double-click local build
+        shell: pwsh
+        run: |
+          ./scripts/package-source.ps1
+          $hash = (Get-FileHash dist/SimulIDE-AI-Source.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText((Join-Path $pwd 'dist/SHA256SUMS.txt'), "$hash  SimulIDE-AI-Source.zip`n")
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: SimulIDE-AI-Source
+          path: |
+            dist/SimulIDE-AI-Source.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
   windows:
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Test launch/update/data selection and package isolation
         shell: powershell
         run: ./tests/windows/launcher-tests.ps1
+      - name: Test passive inventory, source export and checksums
+        shell: powershell
+        run: ./tests/windows/release-tests.ps1
       - name: Build using the same bootstrap as ZAZENI.cmd
         shell: powershell
         run: ./scripts/zazeni.ps1 -BuildOnly
@@ -36,18 +59,61 @@ jobs:
       - name: Create portable student ZIP
         shell: powershell
         run: ./scripts/package-windows.ps1
+      - name: Export matching source and release checksums
+        shell: powershell
+        run: |
+          ./scripts/package-source.ps1
+          Copy-Item build_AI/executables/SimulIDE_2.0.0-/build-info.json dist/build-info.json
+          ./scripts/release-checksums.ps1
       - name: Launch the extracted portable ZIP through ZAZENI.cmd
         shell: powershell
         run: |
           Expand-Archive -LiteralPath dist/SimulIDE-AI-Windows.zip -DestinationPath dist/portable-smoke -Force
           ./tests/windows/portable-smoke.ps1 -PackageRoot (Join-Path $pwd 'dist/portable-smoke')
-      - uses: actions/upload-artifact@v4
+      - name: Build extracted source ZIP using the already installed tools
+        shell: powershell
+        run: |
+          Expand-Archive dist/SimulIDE-AI-Source.zip dist/source-smoke
+          # The archive has no .git and no desktop binary. Use the same entrypoint
+          # with BuildOnly so this check does not leave another GUI open in CI.
+          ./dist/source-smoke/scripts/zazeni.ps1 -BuildOnly
+          if (-not (Test-Path dist/source-smoke/build_AI/executables/SimulIDE_2.0.0-/simulide.exe)) { throw 'Izvorni ZIP ni ustvaril svojega programa.' }
+          if (Select-String -Path dist/source-smoke/setup.log -Pattern 'Prenasam Python|Pripravljam Qt|Pripravljam lokalni MSYS2|Gradim OpenSSL') { throw 'Izvorni ZIP ni ponovno uporabil pripravljenih orodij.' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: SimulIDE-AI-Windows
-          path: dist/SimulIDE-AI-Windows.zip
+          path: |
+            dist/SimulIDE-AI-Windows.zip
+            dist/SimulIDE-AI-Source.zip
+            dist/build-info.json
+            dist/SHA256SUMS.txt
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: windows-setup-log
           path: setup.log
+  draft-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [source, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: SimulIDE-AI-Windows
+          path: release
+      - name: Verify hashes and prepare a draft release for review
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          cd release
+          sha256sum --check SHA256SUMS.txt
+          # An existing tag/release is never replaced. Publication follows review.
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --verify-tag --target "$GITHUB_SHA" --draft --title "SimulIDE AI $GITHUB_REF_NAME" \
+            --notes-file ../docs/RELEASE-NOTES.md \
+            SimulIDE-AI-Windows.zip SimulIDE-AI-Source.zip build-info.json SHA256SUMS.txt

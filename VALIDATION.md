@@ -1,5 +1,23 @@
 # V0.12 – preverjanje (11. 10. 2026)
 
+## Dopolnitev za DeepGuard in sledljivost
+
+- Primerjava prejšnje in nove gradnje, pregled izvajanja TLS, odprte domneve,
+  lokalni preizkus in podatki za WithSecure so v [poročilu](docs/WINDOWS-DEEPGUARD.md).
+  Vzrok zaznave ni potrjen; pregled WithSecure ni bil izveden.
+- PowerShell 7.5.4: vseh **43 obstoječih kontrolnih preverjanj** in **13 novih
+  preverjanj** izvoza izvornega ZIP-a, izključitve lokalnih zasebnih datotek,
+  pasivnega EXE/DLL inventarja, primerjave in kontrolnih vsot je uspešnih.
+  PowerShell sintaksa in Actions YAML sta preverjena.
+- Novo Windows CI preverjanje mora dodatno potrditi inventar z Windows
+  Authenticode in gradnjo razširjenega izvornega ZIP-a s ponovno uporabo orodij;
+  njegov rezultat bo dopolnjen po zaključku. Spodnji uspešni Windows rezultati
+  veljajo za tam izrecno navedeno prejšnjo revizijo.
+- Zaznava na uporabnikovem računalniku ni reproducirana. Niti stari uporabnikov
+  EXE/DLL-ji niti blokirani vzorec še niso na voljo za dejansko hash primerjavo.
+  Digitalno podpisovanje in objava Release nista izvedena; postopek osnutka
+  izdaje na novem tagu je pripravljen za pregled.
+
 ## Windows zaganjalniki in posodobitev izvorne kode
 
 - V Linux okolju s PowerShell 7.5.4 in v Windows CI s PowerShell 5.1 je bilo

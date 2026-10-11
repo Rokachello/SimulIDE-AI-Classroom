@@ -59,6 +59,22 @@ nastavitev ali baze in se posodobi s prenosom novega prevedenega paketa. Za razv
 učiteljski strežnik uporabi izvorni repozitorij. Izvorna koda ustrezne izdaje je
 navedena v paketovem `PREBERI.txt`.
 
+## Lokalni preizkus in sledljiva distribucija
+
+Če WithSecure blokira preneseni program, zaščite ne izklapljaj in ne dodajaj izjem.
+Za najpreprostejši lokalni preizkus prenesi **SimulIDE-AI-Source.zip**, razširi celoten
+ZIP v novo mapo in dvoklikni **ZAZENI.cmd**. Ta paket nima CI programa ali DLL-jev;
+prevede kodo lokalno in najprej ponovno uporabi tvoja orodja. TLS pregleda ne preskoči.
+Polni commit je v `PREBERI-IZVOR.txt`, kontrolne vsote pa so priložene. Artefakt
+**SimulIDE-AI-Source** v Actions je na voljo ločeno od počasnejše Windows gradnje.
+
+**PREGLED-DLL.cmd** pasivno primerja stare in nove EXE/DLL-je (hash, različica,
+arhitektura, podpis); ne zažene pregledanih datotek. Rezultati so v
+`dist\withsecure-review`. Izdaje z novim tagom `v*` pripravijo osnutek Release z
+obema ZIP-oma, `build-info.json` in `SHA256SUMS.txt`; objava sledi pregledu.
+[Ugotovitve, TLS pregled, postopek WithSecure in podpisovanje](docs/WINDOWS-DEEPGUARD.md)
+ločijo preverjena dejstva od domnev. Trenutni workflow programa še ne podpisuje.
+
 ## Razvojno preverjanje
 
 Strežniški testi: `python -m unittest discover -s server -p 'test_*.py'` po namestitvi

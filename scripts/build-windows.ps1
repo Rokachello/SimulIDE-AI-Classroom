@@ -22,6 +22,7 @@ try {
     Invoke-Checked (Join-Path $MingwBin 'mingw32-make.exe') @('clean') 'Ciscenje gradilnih objektov'
     Invoke-Checked (Join-Path $MingwBin 'mingw32-make.exe') @('-j4') 'Gradnja SimulIDE'
 } finally { Pop-Location }
+. (Join-Path $PSScriptRoot 'runtime-inventory.ps1')
 $outputDir = "$srcRoot/build_AI/executables/SimulIDE_2.0.0-"
 Copy-Item "$srcRoot/resources/data" $outputDir -Recurse -Force
 # Use the actual downloaded Qt paths instead of the deployment tool's compiled prefix.
@@ -69,4 +70,45 @@ foreach ($component in @(@('Qt', $qtPrefix), @('MinGW', (Split-Path $mingwBin -P
         Copy-Item -LiteralPath $notice.FullName -Destination $target -Force
     }
 }
+$inventory = @(Get-RuntimeInventory $outputDir)
+# Record the actual origins, including cached DLLs; a filename/version alone does
+# not establish byte identity. Later copy operations take precedence over Qt.
+$origins = @(@('CRT', $CrtBin), @('TLS', $TlsBin), @('MinGW', $MingwBin), @('Qt', $qtBin))
+foreach ($entry in $inventory) {
+    $origin = 'unmatched-existing-file'
+    if ($entry.path -eq 'simulide.exe') { $origin = 'this-source-build' }
+    elseif ($entry.path.StartsWith('plugins/')) {
+        $sourceFile = Join-Path $pluginSource $entry.path.Substring(8)
+        if ((Test-Path -LiteralPath $sourceFile) -and (Get-FileHash -LiteralPath $sourceFile).Hash.ToLowerInvariant() -eq $entry.sha256) { $origin = 'Qt/plugins' }
+    } else {
+        foreach ($component in $origins) {
+            $sourceFile = Join-Path $component[1] $entry.path
+            if ((Test-Path -LiteralPath $sourceFile) -and (Get-FileHash -LiteralPath $sourceFile).Hash.ToLowerInvariant() -eq $entry.sha256) { $origin = $component[0]; break }
+        }
+    }
+    $entry | Add-Member -NotePropertyName origin -NotePropertyValue $origin
+}
+$sourceRevision = Get-SourceRevision $srcRoot
+$fullCommit = $null
+if ($sourceRevision -ne 'unknown') {
+    $commit = Invoke-Probe 'git' @('-C', $srcRoot, 'rev-parse', 'HEAD')
+    if ($commit.Code -eq 0 -and $commit.Output -match '^[0-9a-f]{40}$') { $fullCommit = $commit.Output }
+}
+Write-JsonFile (Join-Path $outputDir 'build-info.json') ([ordered]@{
+    schema = 1
+    source_revision = $sourceRevision
+    source_commit = $fullCommit
+    source_url = if ($fullCommit) { "https://github.com/Rokachello/SimulIDE-AI-Classroom/tree/$fullCommit" } else { $null }
+    built_at_utc = [DateTime]::UtcNow.ToString('o')
+    qt_version = (Invoke-Probe (Join-Path $QtBin 'qmake.exe') @('-query', 'QT_VERSION')).Output
+    compiler_version = (Invoke-Probe (Join-Path $MingwBin 'g++.exe') @('-dumpfullversion')).Output
+    compiler_target = (Invoke-Probe (Join-Path $MingwBin 'g++.exe') @('-dumpmachine')).Output
+    build_command = 'qmake AI.pro; mingw32-make clean; mingw32-make -j4'
+    workflow_run = if ($env:GITHUB_ACTIONS) { "https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" } else { $null }
+    workflow_ref = $env:GITHUB_WORKFLOW_REF
+    workflow_sha = $env:GITHUB_WORKFLOW_SHA
+    runner_os = [Environment]::OSVersion.VersionString
+    powershell_version = $PSVersionTable.PSVersion.ToString()
+    runtime = $inventory
+})
 Write-SetupLog "Prevedeni program: $outputDir/simulide.exe"
