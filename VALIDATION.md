@@ -1,10 +1,10 @@
-# V0.12 – preverjanje (10. 10. 2026)
+# V0.12 – preverjanje (11. 10. 2026)
 
 ## Windows zaganjalniki in posodobitev izvorne kode
 
 - V Linux okolju s PowerShell 7.5.4 in v Windows CI s PowerShell 5.1 je bilo
-  uspešno izvedenih **39 kontrolnih preverjanj**; dodani so še štirje pregledi
-  napačne izrecne izbire podatkovne mape (njihovo Windows preverjanje še poteka):
+  uspešno izvedenih **43 kontrolnih preverjanj**, vključno s preprečitvijo nove
+  prazne baze ob napačni izrecni izbiri podatkovne mape:
   prva gradnja, hiter zagon brez sprememb, sprememba vsebine ob istem času datoteke,
   dodajanje/odstranjevanje virov, manjkajoča izvršljiva datoteka ali vtičnik,
   napaka prevajalnika/TLS brez veljavne oznake pripravljenosti, pravilna arhitektura
@@ -31,14 +31,18 @@
   sintaktično preverjeni; končna konfiguracija `qmake` je preverjena tudi po
   spremembi Git oznake programa.
 
-**Windows gradnja in zagon paketa sta v preverjanju:**
-[Windows CI](https://github.com/Rokachello/SimulIDE-AI-Classroom/actions/runs/38092533909)
-je uspešno opravil kontrolne teste. Preostali koraki preverijo prenos orodij,
-gradnjo iz čiste kopije, TLS, gradnjo brez sprememb, ponovno gradnjo s spremembo
-vsebine in ohranjenim časom izvorne datoteke ter dejanski zagon `ZAZENI.cmd` iz
-razširjenega ZIP-a in naslov okna z različico ter Git revizijo. Njihov uspeh še
-ni potrjen. Ročni dvoklik na uporabnikovem računalniku in živi OpenAI klici niso
-bili izvedeni.
+**Windows gradnja in zagon paketa sta uspešno preverjena:**
+[Windows CI](https://github.com/Rokachello/SimulIDE-AI-Classroom/actions/runs/38093980638)
+na Windows Server 2022 je uspešno opravil vseh 43 kontrolnih testov, prenos in
+pripravo orodij, gradnjo iz čiste kopije, TLS, preskok gradnje brez sprememb ter
+ponovno gradnjo po spremembi vsebine z ohranjenim časom izvorne datoteke. Po
+odstranitvi testne spremembe je ponovno prevedel originalno kodo in sestavil
+`SimulIDE-AI-Windows.zip` z licenčnimi obvestili. Dejanski `ZAZENI.cmd` iz
+razširjenega ZIP-a je odprl Windows SimulIDE; test je preveril naslov okna z
+različico **AI 0.12** in Git oznako **e66e2247e307**. To je GitHubov testni merge
+commita veje `566050309b12` z `main`, ki ga Actions uporabi za preverjanje PR-ja.
+Vsi koraki so zaključeni z `success`; paket in `setup.log` sta na voljo med
+artefakti tega zagona.
 
 ## Predhodno preverjanje učilnice
 
@@ -49,7 +53,10 @@ bili izvedeni.
 
 ## Omejitve
 
-Windows prevod in zagon preverja ločen Windows CI; rezultat je naveden zgoraj.
+Windows prevod in dejanski zagon namiznega programa sta preverjena v Windows CI.
+Ročni dvoklik na uporabnikovem računalniku in interaktivni zagon Windows strežnika
+nista bila izvedena; izbor in ohranitev podatkovne mape preverjajo kontrolni testi,
+strežniško delovanje pa navedeni Linux testi.
 Resnični OpenAI klici niso bili preizkušeni: integracija uporablja simulirane odgovore v testih. RAG se pripravi z uporabnikovim ključem ob zagonu strežnika.
 Osnutki pogovora in kviza se shranijo na istem računalniku/uporabniškem profilu; niso še oddaja učitelju. Vezje shrani s Ctrl+S. Učiteljski obrazci opozarjajo na neshranjene spremembe, nimajo samodejnega shranjevanja.
 Pregled kaže zabeleženo dejavnost, ne trenutne spletne prisotnosti. Scaffolding krmilnik in sistematično spremljanje napačnih predstav še nista implementirana. Časovno vzorčenje ni nadomestilo za osciloskop.
