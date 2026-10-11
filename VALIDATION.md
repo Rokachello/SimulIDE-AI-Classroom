@@ -9,12 +9,26 @@
   preverjanj** izvoza izvornega ZIP-a, izključitve lokalnih zasebnih datotek,
   pasivnega EXE/DLL inventarja, primerjave in kontrolnih vsot je uspešnih.
   PowerShell sintaksa in Actions YAML sta preverjena.
-- Novo Windows CI preverjanje mora dodatno potrditi inventar z Windows
-  Authenticode in gradnjo razširjenega izvornega ZIP-a s ponovno uporabo orodij;
-  njegov rezultat bo dopolnjen po zaključku. Spodnji uspešni Windows rezultati
-  veljajo za tam izrecno navedeno prejšnjo revizijo.
-- Zaznava na uporabnikovem računalniku ni reproducirana. Niti stari uporabnikov
-  EXE/DLL-ji niti blokirani vzorec še niso na voljo za dejansko hash primerjavo.
+- [Windows CI za revizijo `9908ec1`](https://github.com/Rokachello/SimulIDE-AI-Classroom/actions/runs/38130927023):
+  **43 + 13 kontrolnih preverjanj v PowerShell 5.1 uspešnih**, dejanska gradnja,
+  inventar s stanjem Authenticode, TLS, preskok nespremenjene gradnje, ponovna
+  gradnja po spremembi vsebine, pakiranje/kontrolne vsote in dejanski CMD zagon
+  prenosnega programa z Git `cdc3f11f2290` (testni merge) so uspešni.
+- Iz razširjenega izvornega ZIP-a je CI ponovno uporabil isti SDK in **dejansko
+  prevedel nov lokalni EXE ter opravil TLS pregled z izhodno kodo 0**. Zaključna
+  kontrola koraka je kljub temu odpovedala: klic zaganjalnika v istem PowerShell
+  procesu spremeni delovno mapo, relativna kontrolna pot pa je zato kazala drugam.
+  Celotnega tega CI zagona ne označujemo kot uspešnega. Kontrola sedaj uporablja
+  absolutne poti in obnovi delovno mapo; ponovni CI bo preveril popravek.
+- Inventar/kontrolne vsote in izvorni ZIP so preverjeni. Windows artefakt se sedaj
+  shrani po uspešnem zagonu paketa, pred ločenim pregledom izvornega ZIP-a, da
+  ostane na voljo za analizo tudi ob napaki tega dodatnega pregleda. Release
+  še vedno zahteva uspeh vseh kontrol. Shranita se oba dnevnika gradnje.
+- Zaznava na uporabnikovem računalniku ni reproducirana. Uporabnikov dnevnik
+  potrjuje zavrnjen prvi poskus zagona EXE za TLS pregled
+  (`Access is denied`); razlog zaznave in identiteta DLL-jev ostajata odprta.
+  Niti stari uporabnikov EXE/DLL-ji niti blokirani vzorec še niso na voljo za
+  dejansko hash primerjavo.
   Digitalno podpisovanje in objava Release nista izvedena; postopek osnutka
   izdaje na novem tagu je pripravljen za pregled.
 

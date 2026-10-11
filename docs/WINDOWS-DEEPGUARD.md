@@ -5,6 +5,27 @@ Zaščite ne izklapljaj, ne dodajaj izjem in ne obnavljaj datotek iz karantene z
 preizkušanje. Če zaščita blokira tudi lokalno gradnjo, se preizkus tam ustavi.
 Obravnava pri WithSecure še ni opravljena; zaznave ne razglašamo za lažno pozitivno.
 
+## Potrjeno iz uporabnikovega dnevnika
+
+Uporabnik je posredoval dva neuspešna poskusa 11. 10. 2026 ob `11:46:32` in
+`11:51:52` (časovni pas Windows dnevnika ni potrjen). Osebna pot je izpuščena:
+
+```text
+SimulIDE AI 0.12; mapa: <razsirjeni Windows paket>
+NAPAKA: Program 'simulide.exe' failed to run: Access is denied
+scripts/windows-common.ps1:19
+& $Program @Arguments 2>&1 | ForEach-Object { ... }
+```
+
+V tem prenosnem paketu je prvi klic `Invoke-Checked` zagon lokalnega
+`bin/simulide.exe -ai-check-tls`. Njegov poskus zagona je zavrnjen; do naslednjega
+`Start-Process`, ki odpre glavno okno, skript ne pride. Nimamo potrditve uspešnega
+zagona TLS procesa ali izvajanja `QSslSocket::supportsSsl()`. To je napaka pri
+poskusu zagona, ne potrjena napaka TLS podpore. Odsotnost same vrstice `AI TLS`
+v dnevniku ni samostojen dokaz: C++ jo lahko izpiše neposredno v konzolo.
+Sam dnevnik ne določi DLL-ja ali notranjega razloga DeepGuard in ne potrdi
+neškodljivosti EXE. Uporabnik revizije in orodij stare delujoče gradnje ne pozna.
+
 ## Ugotovitve iz kode in zgodovine
 
 Primerjalna osnova je prejšnja koda repozitorija `cdd747d530c64035268c663580b80430afa77e15`
@@ -22,11 +43,22 @@ z uporabnikovim dejanskim starim EXE: njegova revizija, orodja in datoteke niso 
 | Zagon | Starega uporabnikovega zaganjalnika nimamo | CMD → Windows PowerShell → `simulide.exe -ai-check-tls` → ob uspehu drugi proces `simulide.exe` z glavnim oknom |
 | Podpisovanje | V pregledanem workflowu ni koraka podpisovanja | Prav tako ga ni; dejansko stanje posameznih EXE/DLL-jev zapiše inventar |
 
+Čisti novi bootstrap prevede OpenSSL z `Configure mingw64 shared no-asm no-tests`
+in `make -j4` (`scripts/build-tls.sh`); zastavic stare uporabnikove TLS gradnje
+ne poznamo. MinGW DLL-ja zato nista nujno enaka prej priloženima knjižnicama,
+tudi če je izpisana enaka različica OpenSSL. To preveri hash primerjava.
+
 Izvorna datoteka `src/main.cpp`, tudi veja `-ai-check-tls`, se med tema revizijama
 **ni spremenila**. C++ spremembe prejšnjega PR-ja so dodale oznako različice/commita
 v naslov in O programu; niso odstranile TLS pregleda ali spremenile zaščite.
 Ta dopolnitev prav tako ne spreminja C++, izbranih DLL-jev, optimizacij ali načina
 nalaganja programa zaradi zaznave. Doda sledljivost, pasivni pregled in dnevniške oznake.
+
+V obeh primerjanih revizijah je tudi nespremenjen AngelScript JIT:
+`src/angel/JIT/virtual_asm_windows.cpp` vsebuje `VirtualAlloc` z
+`PAGE_EXECUTE_READWRITE` in poznejši `VirtualProtect`; `ScriptBase` ga poveže
+na x64 platformi. Prisotnost kode za izvršljiv pomnilnik je podatek za analitika,
+ne dokaz, da je bila ta pot ob blokadi izvedena ali da je povzročila zaznavo.
 
 CI za revizijo `a0d13c4` je uspešno prevedel in odprl Windows program v
 [zagonu 38127849133](https://github.com/Rokachello/SimulIDE-AI-Classroom/actions/runs/38127849133).
@@ -51,8 +83,12 @@ DLL-je je treba pregledati na njegovem računalniku oziroma primerjati njegove i
    prevedenega paketa. Ob neuspehu se glavno okno ne zažene; oznaka pripravljenosti
    lokalne gradnje se odstrani. `-BuildOnly` prav tako opravi TLS pregled.
 
-`setup.log` sedaj loči `TLS pregled: zacenjam ...`, izpis `AI TLS: ...`,
+`setup.log` sedaj loči `TLS pregled: zacenjam ...`,
 `TLS pregled: koncano, izhodna koda 0.` in `Odpiram SimulIDE iz: ...`.
+Izpis `AI TLS: ...` se shrani, kadar pride v preusmerjeni stderr. Nespremenjeni
+C++ ob uspešnem `AttachConsole` preusmeri stdout/stderr na `CONOUT$`, zato se
+ta vrstica lahko pokaže neposredno v konzoli in je PowerShell ne zajame v dnevnik.
+Novi začetni/končni oznaki piše PowerShell in nista odvisni od tega preusmerjanja.
 Če ni zapisa o koncu, potrebujemo hkrati podatek DeepGuard o blokirani datoteki;
 manjkajoča vrstica sama ne določi vzroka. Inventar pokaže prisotne datoteke in
 njihov izvor, ne dokazuje celotnega dejanskega nabora DLL-jev, naloženih v procesu.
@@ -63,8 +99,12 @@ njihov izvor, ne dokazuje celotnega dejanskega nabora DLL-jev, naloženih v proc
   lokalna gradnja; odločitev DeepGuard je lahko povezana z ugledom ali vedenjem.
 - CI lahko vsebuje drugačne OpenSSL DLL-je od stare namestitve, čeprav sta ime
   in ABI enaka. Različice in hash primerjava to lahko potrdijo ali ovržejo.
-- Dva zaporedna zagona EXE in dinamično nalaganje TLS/Qt vtičnikov sta koraka,
-  pri katerih bi se blokada lahko pojavila. Ni potrjeno, da sta njen razlog.
+- Argument `-ai-check-tls`, izvor datoteke in dinamično nalaganje knjižnic so
+  podatki za pregled. Prvi poskus zagona je zavrnjen; ni potrjeno, da sta bila
+  TLS koda ali glavni program sploh izvedena, ali da je bil blokiran DLL.
+- Analitik lahko preveri tudi obstoječi JIT in njegove pomnilniške operacije.
+  Njegova koda se med primerjanima revizijama ni spremenila; brez dogodka ali
+  analize vzorca te poti ni mogoče povezati z novo zaznavo.
 
 Sam naziv zaznave ne pokaže, katera domneva drži, in ne izključi resnične napake ali
 kompromitirane datoteke. Brez točnega vzorca, dogodka in pregleda WithSecure vzrok

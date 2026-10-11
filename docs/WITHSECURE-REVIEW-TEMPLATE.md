@@ -4,13 +4,13 @@ Status: pripravljena predloga; vzorec še ni oddan in vzrok ni potrjen.
 
 - Zaznava: `Suspicious:W32/Malware!DeepGuard.ag` (poročilo uporabnika).
 - Izdelek WithSecure, njegova različica, stanje posodobitev in Windows različica: **dopolni**.
-- Čas dogodka s časovnim pasom: **dopolni**.
-- Blokirana datoteka/proces in dejanje: **dopolni iz dogodka**.
-- Korak: razširjanje ZIP / priprava orodij / `-ai-check-tls` / odpiranje glavnega okna: **dopolni**.
+- Čas dogodka: **11. 10. 2026 ob 11:46:32 in 11:51:52** iz uporabnikovega `setup.log`; časovni pas **dopolni**.
+- Poskus zagona: paketov `bin/simulide.exe`; Windows PowerShell izpiše **Access is denied** pri `windows-common.ps1:19`. Točen dogodek/blokirano datoteko iz WithSecure **priloži**.
+- Korak: prvi zagon EXE z **`-ai-check-tls`**, pred glavnim oknom. Izpisa `AI TLS: ...` ni; izvajanje same TLS funkcije ni potrjeno.
 - Točen hash blokiranega vzorca SHA256 in stanje Authenticode: **dopolni iz pasivnega inventarja**.
 - ZIP SHA256, ime izdaje, source commit in povezava do CI: **priloži SHA256SUMS.txt in build-info.json**.
 - Izvorna koda: `https://github.com/Rokachello/SimulIDE-AI-Classroom` in nespremenljiva povezava do commita v poročilu.
-- Stara delujoča gradnja: source commit, Qt/MinGW/TLS, hashi in podpisi: **dopolni, če so na voljo; sicer označi neznano**.
+- Stara delujoča gradnja: revizija in orodja **uporabniku niso znani**; hashe/različice/podpise **dopolni s pasivnim inventarjem**, če so datoteke na voljo.
 - Rezultat lokalne gradnje iste kode z obstoječimi orodji: **dopolni brez posega v zaščito**.
 - Sklic podpore WithSecure in ugotovitev analize: **dopolni po prejemu**.
 

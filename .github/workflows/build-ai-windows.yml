@@ -70,15 +70,6 @@ jobs:
         run: |
           Expand-Archive -LiteralPath dist/SimulIDE-AI-Windows.zip -DestinationPath dist/portable-smoke -Force
           ./tests/windows/portable-smoke.ps1 -PackageRoot (Join-Path $pwd 'dist/portable-smoke')
-      - name: Build extracted source ZIP using the already installed tools
-        shell: powershell
-        run: |
-          Expand-Archive dist/SimulIDE-AI-Source.zip dist/source-smoke
-          # The archive has no .git and no desktop binary. Use the same entrypoint
-          # with BuildOnly so this check does not leave another GUI open in CI.
-          ./dist/source-smoke/scripts/zazeni.ps1 -BuildOnly
-          if (-not (Test-Path dist/source-smoke/build_AI/executables/SimulIDE_2.0.0-/simulide.exe)) { throw 'Izvorni ZIP ni ustvaril svojega programa.' }
-          if (Select-String -Path dist/source-smoke/setup.log -Pattern 'Prenasam Python|Pripravljam Qt|Pripravljam lokalni MSYS2|Gradim OpenSSL') { throw 'Izvorni ZIP ni ponovno uporabil pripravljenih orodij.' }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: SimulIDE-AI-Windows
@@ -88,11 +79,26 @@ jobs:
             dist/build-info.json
             dist/SHA256SUMS.txt
           if-no-files-found: error
+      - name: Build extracted source ZIP using the already installed tools
+        shell: powershell
+        run: |
+          $workspace = $pwd.Path
+          $sourceRoot = Join-Path $workspace 'dist/source-smoke'
+          Expand-Archive (Join-Path $workspace 'dist/SimulIDE-AI-Source.zip') $sourceRoot
+          # The archive has no .git and no desktop binary. Use the same entrypoint
+          # with BuildOnly so this check does not leave another GUI open in CI.
+          try {
+            & (Join-Path $sourceRoot 'scripts/zazeni.ps1') -BuildOnly
+            if (-not (Test-Path (Join-Path $sourceRoot 'build_AI/executables/SimulIDE_2.0.0-/simulide.exe'))) { throw 'Izvorni ZIP ni ustvaril svojega programa.' }
+            if (Select-String -Path (Join-Path $sourceRoot 'setup.log') -Pattern 'Prenasam Python|Pripravljam Qt|Pripravljam lokalni MSYS2|Gradim OpenSSL') { throw 'Izvorni ZIP ni ponovno uporabil pripravljenih orodij.' }
+          } finally { Set-Location -LiteralPath $workspace }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: windows-setup-log
-          path: setup.log
+          path: |
+            setup.log
+            dist/source-smoke/setup.log
   draft-release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [source, windows]
