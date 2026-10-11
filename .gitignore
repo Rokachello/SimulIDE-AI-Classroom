@@ -1,5 +1,9 @@
-# Build output
-build*/
+# Generated build outputs; upstream build_XX contains the source project.
+/build*/
+!/build_XX/
+/build_XX/*
+!/build_XX/SimulIDE_Build.pro
+/dist/
 *.o
 *.obj
 *.a
@@ -9,20 +13,21 @@ build*/
 Makefile
 *.pro.user
 .qmake.stash
-# Python environments, caches, and local classroom data
+/resources/qm/*.qm
+# Python environments, caches and private classroom state
 .venv/
 venv/
 __pycache__/
 *.py[cod]
 classroom-data/
-data/
-*.sqlite
-*.sqlite3
+/data/
+/server/data/
+*.sqlite*
 *.db
+*.db-*
 .env
 .env.*
 !.env.example
-# Local logs and generated vector store configuration
 *.log
-server/vector-rag.json
-server/vector-rag.lock
+/server/vector-rag.json
+/server/vector-rag.lock

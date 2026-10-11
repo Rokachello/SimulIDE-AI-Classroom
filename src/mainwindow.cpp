@@ -45,7 +45,8 @@ MainWindow::MainWindow()
     m_autoBck = 15;
     m_state = "■";
     m_revision = QString( REVNO ).remove("R").toInt();
-    m_version = "SimulIDE_"+QString( APP_VERSION )+"-"+QString( REVNO );
+    m_version = "SimulIDE AI "+QString( SIMULIDE_AI_RELEASE )+" | "+QString( SIMULIDE_GIT_COMMIT )
+              +" | SimulIDE "+QString( APP_VERSION );
 
     this->setWindowTitle( m_version );
 

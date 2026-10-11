@@ -146,6 +146,15 @@ DEFINES += REVNO=\\\"$$REV_NO\\\"
 DEFINES += APP_VERSION=\\\"$$VERSION-$$RELEASE\\\"
 DEFINES += BUILDDATE=\\\"$$BUILD_DATE\\\"
 
+# Source ZIPs may lack Git; do not label them with an unrelated installation's commit.
+GIT_COMMIT = $$getenv(SIMULIDE_GIT_COMMIT)
+isEmpty(GIT_COMMIT) {
+    exists($$PWD/.git): GIT_COMMIT = $$system(git -C $$shell_quote($$PWD) rev-parse --short=12 HEAD)
+}
+isEmpty(GIT_COMMIT): GIT_COMMIT = unknown
+DEFINES += SIMULIDE_GIT_COMMIT=\\\"$$GIT_COMMIT\\\"
+DEFINES += SIMULIDE_AI_RELEASE=\\\"0.12\\\"
+
 TARGET_NAME   = SimulIDE_$$VERSION-$$RELEASE
 TARGET_PREFIX = $$BUILD_DIR/executables/$$TARGET_NAME
 

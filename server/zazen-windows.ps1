@@ -6,7 +6,9 @@ Set-Location -LiteralPath $PSScriptRoot
 $runtime = Join-Path $env:LOCALAPPDATA 'SimulIDE-AI-V0.2/server-runtime312'
 $python = Join-Path $runtime 'python.exe'
 $lock = $null
+. (Join-Path (Split-Path $PSScriptRoot -Parent) 'scripts/windows-common.ps1')
 try {
+    Initialize-SetupLog (Split-Path $PSScriptRoot -Parent)
     Write-Host 'SIMULIDE AI UCILNICA V0.12'
     Write-Host "Zaganjam streznik iz: $PSScriptRoot"
     $existing = $null
@@ -32,12 +34,12 @@ try {
     $marker = Join-Path $runtime 'packages-ready.txt'
     if (-not (Test-Path -LiteralPath $marker) -or (Get-Content -LiteralPath $marker -Raw).Trim() -ne $hash) {
         Write-Host 'Pripravljam knjiznice streznika ...'
-        & $python -m pip install --no-user --no-cache-dir --upgrade --target (Join-Path $runtime 'Lib/site-packages') -r $requirements
-        if ($LASTEXITCODE -ne 0) { throw 'Namestitev knjiznic ni uspela.' }
+        Invoke-Checked $python @('-m', 'pip', 'install', '--no-user', '--no-cache-dir', '--upgrade', '--target', (Join-Path $runtime 'Lib/site-packages'), '-r', $requirements) 'Namestitev knjiznic streznika'
         Set-Content -LiteralPath $marker -Value $hash -Encoding ASCII
     }
-    $env:SIMULIDE_DATA = Join-Path $env:LOCALAPPDATA 'SimulIDE-AI-V0.2/classroom-data'
-    & $python -c "import app; assert app.app.test_client().get('/health').json.get('release') == '0.12', 'Nalozena je napacna razlicica streznika'; print('Ucilnica V0.12 pripravljena'); print('Izvor:', app.__file__)"
+    $env:SIMULIDE_DATA = Get-ClassroomDataPath $PSScriptRoot $env:LOCALAPPDATA $env:SIMULIDE_DATA
+    Write-SetupLog "Podatkovna mapa streznika: $env:SIMULIDE_DATA"
+    & $python -c "import app; from pathlib import Path; assert Path(app.__file__).resolve() == (Path.cwd()/'app.py').resolve(), 'Nalozen je streznik iz druge namestitve'; assert app.app.test_client().get('/health').json.get('release') == '0.12', 'Nalozena je napacna razlicica streznika'; print('Ucilnica V0.12 pripravljena'); print('Izvor:', app.__file__)"
     if ($LASTEXITCODE -ne 0) { throw 'Preverjanje streznika ni uspelo.' }
     & $python -c "from app import db; c=db(); raise SystemExit(0 if c.execute('SELECT 1 FROM users WHERE role=?', ('teacher',)).fetchone() else 3)"
     if ($LASTEXITCODE -eq 3) {
@@ -69,6 +71,10 @@ try {
     Write-Host 'Pusti to okno odprto. V SimulIDE uporabi Prijava / ura.'
     & $python app.py serve
     if ($LASTEXITCODE -ne 0) { throw 'Streznik se je ustavil z napako.' }
+} catch {
+    # Do not transcribe interactive API-key entry or student/server output into setup.log.
+    Write-SetupLog "NAPAKA: $($_.Exception.Message)"
+    exit 1
 } finally {
     Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue
     if ($null -ne $lock) { $lock.Dispose() }

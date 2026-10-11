@@ -1,0 +1,2 @@
+# MSYS2 and Linux execute shell helpers with Unix line endings on every checkout.
+*.sh text eol=lf
